@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";
-export default function Root() { redirect("/dashboard"); }
+export default function Page() {
+  return <div>Dashboard OK</div>
