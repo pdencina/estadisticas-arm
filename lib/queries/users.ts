@@ -6,10 +6,13 @@ export async function getCurrentUser() {
 
     const {
       data: { user },
-      error,
+      error: authError,
     } = await supabase.auth.getUser();
 
-    if (error || !user) return null;
+    console.log("AUTH USER:", user?.id, user?.email);
+    console.log("AUTH ERROR:", authError);
+
+    if (authError || !user) return null;
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
@@ -17,10 +20,10 @@ export async function getCurrentUser() {
       .eq("id", user.id)
       .single();
 
-    if (profileError) {
-      console.error("Error profile:", profileError);
-      return null;
-    }
+    console.log("PROFILE:", profile);
+    console.log("PROFILE ERROR:", profileError);
+
+    if (profileError || !profile) return null;
 
     return profile;
   } catch (error) {
