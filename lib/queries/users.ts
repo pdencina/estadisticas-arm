@@ -1,12 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/lib/supabase/server";
 
 export async function getCurrentUser() {
   try {
+    const supabase = createClient();
+
     const {
       data: { user },
       error,
@@ -29,24 +26,5 @@ export async function getCurrentUser() {
   } catch (error) {
     console.error("ERROR getCurrentUser:", error);
     return null;
-  }
-}
-
-export async function getAllUsers() {
-  try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("ERROR getAllUsers:", error);
-      return [];
-    }
-
-    return data ?? [];
-  } catch (error) {
-    console.error("ERROR getAllUsers:", error);
-    return [];
   }
 }
