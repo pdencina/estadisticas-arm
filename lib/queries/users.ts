@@ -31,3 +31,22 @@ export async function getCurrentUser() {
     return null;
   }
 }
+
+export async function getAllUsers() {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("ERROR getAllUsers:", error);
+      return [];
+    }
+
+    return data ?? [];
+  } catch (error) {
+    console.error("ERROR getAllUsers:", error);
+    return [];
+  }
+}
