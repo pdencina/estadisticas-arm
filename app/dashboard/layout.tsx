@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/queries/users";
+import Sidebar from "@/components/layout/Sidebar";
+import Topbar from "@/components/layout/Topbar";
 
 export default async function DashboardLayout({
   children,
@@ -9,13 +11,16 @@ export default async function DashboardLayout({
   const user = await getCurrentUser();
 
   if (!user) {
-    return (
-      <div style={{ padding: 20 }}>
-        <h2>No se pudo obtener el usuario</h2>
-        <p>Revisa logs de Vercel para ver AUTH USER / PROFILE ERROR</p>
-      </div>
-    );
+    redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar user={user} />
+      <div className="main-content">
+        <Topbar user={user} />
+        <main className="flex-1">{children}</main>
+      </div>
+    </div>
+  );
 }
