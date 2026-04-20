@@ -8,37 +8,59 @@ import EncuentrosTable from "@/components/charts/EncuentrosTable";
 export const revalidate = 60;
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  const campusId = user?.rol === "admin_global" ? undefined : user?.campus_id ?? undefined;
+  try {
+    const user = await getCurrentUser();
 
-  const [kpis, encuentros, pendientes] = await Promise.all([
-    getDashboardKPIs(campusId),
-    getEncuentrosSemanaActual(campusId),
-    getEncuentrosPendientes(),
-  ]);
+    if (!user) {
+      return <div>No hay usuario</div>;
+    }
 
-  return (
-    <div className="page space-y-6">
-      <KpiCards kpis={kpis} />
+    const campusId =
+      user.rol === "admin_global" ? undefined : user.campus_id ?? undefined;
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <BarrasCampus encuentros={encuentros} />
+    const [kpis, encuentros, pendientes] = await Promise.all([
+      getDashboardKPIs(campusId),
+      getEncuentrosSemanaActual(campusId),
+      getEncuentrosPendientes(),
+    ]);
+
+    return (
+      <div className="page space-y-6">
+        <KpiCards kpis={kpis} />
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2">
+            <BarrasCampus encuentros={encuentros} />
+          </div>
+          <ContadorAlmas total={16384} />
         </div>
-        <ContadorAlmas total={16384} />
-      </div>
 
-      <div className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3>Encuentros esta semana</h3>
-          {pendientes.length > 0 && (
-            <span className="badge badge-amber">
-              {pendientes.length} pendiente{pendientes.length !== 1 ? "s" : ""}
-            </span>
-          )}
+        <div className="card overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3>Encuentros esta semana</h3>
+            {pendientes?.length > 0 && (
+              <span className="badge badge-amber">
+                {pendientes.length} pendiente
+                {pendientes.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          <EncuentrosTable
+            encuentros={encuentros ?? []}
+            showCampus={!campusId}
+          />
         </div>
-        <EncuentrosTable encuentros={encuentros} showCampus={!campusId} />
       </div>
-    </div>
-  );
+    );
+  } catch (error: any) {
+    console.error("ERROR DASHBOARD:", error);
+
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>Error en Dashboard</h2>
+        <pre>{JSON.stringify(error?.message || error, null, 2)}</pre>
+      </div>
+    );
+  }
 }

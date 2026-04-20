@@ -1,26 +1,33 @@
-import { createClient } from "@/lib/supabase/server";
-import type { UserProfile } from "@/types";
+import { createClient } from "@supabase/supabase-js";
 
-export async function getCurrentUser(): Promise<UserProfile | null> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-  const { data } = await supabase
-    .from("user_profiles")
-    .select("*, campus:campus_id(id,nombre,ciudad,pais)")
-    .eq("id", user.id)
-    .single();
+export async function getCurrentUser() {
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-  return (data as UserProfile) ?? null;
-}
+    if (error || !user) return null;
 
-export async function getAllUsers(): Promise<UserProfile[]> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("user_profiles")
-    .select("*, campus:campus_id(id,nombre,ciudad,pais)")
-    .order("nombre");
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-  return (data as UserProfile[]) ?? [];
+    if (profileError) {
+      console.error("Error profile:", profileError);
+      return null;
+    }
+
+    return profile;
+  } catch (error) {
+    console.error("ERROR getCurrentUser:", error);
+    return null;
+  }
 }
