@@ -68,7 +68,7 @@ export default function UserModal({ user, campusList, onClose }: Props) {
               <select className="input" value={rol} onChange={e => setRol(e.target.value)}>
                 <option value="admin_global">Admin Global</option>
                 <option value="admin_campus">Admin Campus</option>
-                <option value="voluntario">Voluntario</option>
+                <option value="voluntario">Líder Voluntario</option>
               </select>
             </div>
             <div>

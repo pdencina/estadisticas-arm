@@ -49,7 +49,7 @@ export const MODALIDAD_LABELS: Record<string, string> = {
 export const ROL_LABELS: Record<string, string> = {
   admin_global: "Admin Global",
   admin_campus: "Adm. Campus",
-  voluntario:   "Voluntario",
+  voluntario:   "Líder Voluntario",
 };
 
 export const ESTADO_LABELS: Record<string, string> = {
