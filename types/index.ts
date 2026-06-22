@@ -27,7 +27,8 @@ export interface UserProfile {
 // ── Tipos de encuentro ──────────────────────────────────────────────────────
 export type TipoEncuentro =
   | "domingo" | "miercoles" | "jueves" | "sabado"
-  | "prayer_room" | "encuentro_global" | "otro";
+  | "prayer_room" | "encuentro_global" | "encuentro_mujeres"
+  | "encuentro_jovenes" | "encuentro_hombres" | "otro";
 
 export type Modalidad = "presencial" | "online" | "hibrido";
 export type EstadoEncuentro = "borrador" | "enviado" | "validado";

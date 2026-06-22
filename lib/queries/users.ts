@@ -9,7 +9,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     .from("user_profiles")
     .select("*, campus:campus_id(id,nombre,ciudad,pais)")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
   return (data as UserProfile) ?? null;
 }
 

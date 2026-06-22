@@ -10,7 +10,7 @@ export async function getCampus(): Promise<Campus[]> {
 
 export async function getCampusById(id: string): Promise<Campus | null> {
   const supabase = createClient();
-  const { data } = await supabase.from("campus").select("*").eq("id", id).single();
+  const { data } = await supabase.from("campus").select("*").eq("id", id).maybeSingle();
   return (data as Campus) ?? null;
 }
 

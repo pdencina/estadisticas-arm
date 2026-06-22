@@ -28,13 +28,16 @@ export function deltaColor(n: number) {
 }
 
 export const TIPO_LABELS: Record<string, string> = {
-  domingo:          "Domingo",
-  miercoles:        "Miércoles",
-  jueves:           "Jueves",
-  sabado:           "Sábado",
-  prayer_room:      "Prayer Room",
-  encuentro_global: "Encuentro Global",
-  otro:             "Otro",
+  domingo:            "Domingo",
+  miercoles:          "Miércoles",
+  jueves:             "Jueves",
+  sabado:             "Sábado",
+  prayer_room:        "Prayer Room",
+  encuentro_global:   "Encuentro Global",
+  encuentro_mujeres:  "Encuentro Mujeres",
+  encuentro_jovenes:  "Encuentro Jóvenes",
+  encuentro_hombres:  "Encuentro Hombres",
+  otro:               "Otro",
 };
 
 export const MODALIDAD_LABELS: Record<string, string> = {
@@ -56,18 +59,21 @@ export const ESTADO_LABELS: Record<string, string> = {
 };
 
 export const TIPOS_ENCUENTRO = [
-  { value: "domingo",          label: "Domingo"          },
-  { value: "miercoles",        label: "Miércoles"        },
-  { value: "jueves",           label: "Jueves"           },
-  { value: "sabado",           label: "Sábado"           },
-  { value: "prayer_room",      label: "Prayer Room"      },
-  { value: "encuentro_global", label: "Encuentro Global" },
-  { value: "otro",             label: "Otro"             },
+  { value: "domingo",            label: "Domingo"            },
+  { value: "miercoles",          label: "Miércoles"          },
+  { value: "jueves",             label: "Jueves"             },
+  { value: "sabado",             label: "Sábado"             },
+  { value: "prayer_room",        label: "Prayer Room"        },
+  { value: "encuentro_global",   label: "Encuentro Global"   },
+  { value: "encuentro_mujeres",  label: "Encuentro Mujeres"  },
+  { value: "encuentro_jovenes",  label: "Encuentro Jóvenes"  },
+  { value: "encuentro_hombres",  label: "Encuentro Hombres"  },
+  { value: "otro",               label: "Otro"               },
 ];
 
 export const HORARIOS = [
-  "9:00","11:00","13:00","17:00","17:30",
-  "18:00","19:00","19:30","20:00",
+  "9:00","10:00","11:00","11:30","13:00",
+  "17:00","17:30","18:00","19:00","19:30","20:00",
 ];
 
 // Campus → color para gráficos

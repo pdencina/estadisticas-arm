@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { crearEncuentro } from "@/lib/actions/encuentros";
 import { HORARIOS, TIPOS_ENCUENTRO } from "@/lib/utils";
 import type { Campus, AsistenciaDetalle, VoluntariosDetalle } from "@/types";
-import { Loader2, Save, Send } from "lucide-react";
+import { Loader2, Save, Send, Copy } from "lucide-react";
 
 function Ctr({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -42,6 +42,7 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
   const [fecha, setF]   = useState(new Date().toISOString().split("T")[0]);
   const [tipo, setT]    = useState("domingo");
   const [hora, setH]    = useState("11:00");
+  const [horaCustom, setHoraCustom] = useState("");
   const [modal, setM]   = useState("presencial");
   const [pred, setPred] = useState("");
   const [msj,  setMsj]  = useState("");
@@ -53,30 +54,81 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
   const [oEsp, setOEsp] = useState(0);
   const [lidV, setLidV] = useState("");
   const [admC, setAdmC] = useState("");
+  const [saved, setSaved] = useState(false);
 
   const uA = (k: keyof AsistenciaDetalle,   v: number) => setAsis(p=>({...p,[k]:v}));
   const uV = (k: keyof VoluntariosDetalle, v: number) => setVols(p=>({...p,[k]:v}));
   const tA = Object.values(asis).reduce((s,v)=>s+v,0);
   const tV = Object.values(vols).reduce((s,v)=>s+v,0);
 
+  const horarioFinal = hora === "__custom" ? horaCustom : hora;
+
+  function resetNumeros() {
+    setTGrl(0);
+    setPaj(0);
+    setAsis(DA);
+    setVols(DV);
+    setOPaj(0);
+    setOEsp(0);
+    setPred("");
+    setMsj("");
+    setSaved(false);
+  }
+
+  function handleDuplicar() {
+    // Mantiene campus, fecha, tipo, liderazgo — resetea números y horario
+    resetNumeros();
+    setH("11:00");
+    setHoraCustom("");
+    toast.info("Datos numéricos limpiados. Cambiá el horario y completá el nuevo reporte.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function submit(estado: "borrador" | "enviado") {
+    if (!horarioFinal) {
+      toast.error("Ingresá un horario válido.");
+      return;
+    }
     startT(async () => {
       try {
-        await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:hora, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, estado);
+        await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, estado);
         toast.success(estado==="enviado" ? "✓ Reporte enviado correctamente" : "Borrador guardado");
-        router.push("/encuentros");
+        setSaved(true);
       } catch (e) { toast.error((e as Error).message ?? "Error al guardar"); }
     });
   }
 
   return (
     <div className="space-y-5">
+      {saved && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50">
+          <p className="text-sm text-emerald-700 flex-1">
+            ✓ Reporte guardado. ¿Tenés otro encuentro del mismo día?
+          </p>
+          <button onClick={handleDuplicar} className="btn-secondary btn-sm">
+            <Copy size={12} />Cargar otro
+          </button>
+          <button onClick={() => router.push("/encuentros")} className="btn-primary btn-sm">
+            Ir a encuentros
+          </button>
+        </div>
+      )}
+
       <Sec title="Información del encuentro">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div><label className="label">Campus</label><select className="input" value={cId} onChange={e=>setCId(e.target.value)}>{campusList.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
           <div><label className="label">Fecha</label><input type="date" className="input" value={fecha} onChange={e=>setF(e.target.value)}/></div>
           <div><label className="label">Tipo</label><select className="input" value={tipo} onChange={e=>setT(e.target.value)}>{TIPOS_ENCUENTRO.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
-          <div><label className="label">Horario</label><select className="input" value={hora} onChange={e=>setH(e.target.value)}>{HORARIOS.map(h=><option key={h} value={h}>{h}</option>)}</select></div>
+          <div>
+            <label className="label">Horario</label>
+            <select className="input" value={hora} onChange={e=>setH(e.target.value)}>
+              {HORARIOS.map(h=><option key={h} value={h}>{h}</option>)}
+              <option value="__custom">Otro horario...</option>
+            </select>
+            {hora === "__custom" && (
+              <input type="time" className="input mt-2" value={horaCustom} onChange={e=>setHoraCustom(e.target.value)} placeholder="HH:MM" />
+            )}
+          </div>
           <div><label className="label">Modalidad</label><select className="input" value={modal} onChange={e=>setM(e.target.value)}><option value="presencial">Presencial</option><option value="online">Online</option><option value="hibrido">Híbrido</option></select></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -123,8 +175,8 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
       </Sec>
 
       <div className="flex items-center justify-end gap-3 pb-8">
-        <button className="btn-secondary" disabled={pending} onClick={()=>submit("borrador")}><Save size={13}/>Guardar borrador</button>
-        <button className="btn-primary" disabled={pending} onClick={()=>submit("enviado")}>{pending?<Loader2 size={13} className="animate-spin"/>:<Send size={13}/>}Enviar reporte</button>
+        <button className="btn-secondary" disabled={pending || saved} onClick={()=>submit("borrador")}><Save size={13}/>Guardar borrador</button>
+        <button className="btn-primary" disabled={pending || saved} onClick={()=>submit("enviado")}>{pending?<Loader2 size={13} className="animate-spin"/>:<Send size={13}/>}Enviar reporte</button>
       </div>
     </div>
   );

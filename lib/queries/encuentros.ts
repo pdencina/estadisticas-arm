@@ -26,7 +26,7 @@ export async function getEncuentros(campusId?: string): Promise<Encuentro[]> {
 
 export async function getEncuentroById(id: string): Promise<Encuentro | null> {
   const supabase = createClient();
-  const { data } = await supabase.from("encuentros").select(SEL).eq("id", id).single();
+  const { data } = await supabase.from("encuentros").select(SEL).eq("id", id).maybeSingle();
   return (data as Encuentro) ?? null;
 }
 
@@ -99,6 +99,6 @@ export async function getHistoricoSemanal(campusId?: string, nSemanas = 8): Prom
 
 export async function getContadorAlmas(): Promise<number> {
   const supabase = createClient();
-  const { data } = await supabase.from("informes_semanales").select("contador_almas").order("semana_inicio", { ascending: false }).limit(1).single();
+  const { data } = await supabase.from("informes_semanales").select("contador_almas").order("semana_inicio", { ascending: false }).limit(1).maybeSingle();
   return (data as { contador_almas?: number } | null)?.contador_almas ?? 0;
 }
