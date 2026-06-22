@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crearEncuentro } from "@/lib/actions/encuentros";
 import { HORARIOS, TIPOS_ENCUENTRO } from "@/lib/utils";
-import type { Campus, AsistenciaDetalle, VoluntariosDetalle } from "@/types";
+import type { Campus, AsistenciaDetalle, VoluntariosDetalle, Encuentro } from "@/types";
 import { Loader2, Save, Send, Copy, X, Eye } from "lucide-react";
 
 function Ctr({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
@@ -47,25 +47,28 @@ const DV: VoluntariosDetalle  = { servicio:0,tecnica:0,kids:0,tweens:0,worship:0
 const ASIS_LABELS: Record<keyof AsistenciaDetalle, string> = { auditorio:"Auditorio",kids:"Kids",tweens:"Tweens",sala_bebe:"Sala bebé",sala_sensorial:"Sala sensorial",cambio:"Cambio" };
 const VOL_LABELS: Record<keyof VoluntariosDetalle, string> = { servicio:"Servicio",tecnica:"Técnica",kids:"Kids",tweens:"Tweens",worship:"Worship",cocina:"Cocina",rrss:"R.R.S.S",seguridad:"Seguridad",sala_bebes:"Sala bebés",conexion:"Conexión",oracion:"Oración",merch:"Merch",amor_por_la_casa:"Amor casa",sala_sensorial:"Sala sensorial",punto_siembra:"Pto. siembra",cambios:"Cambios" };
 
-export default function NuevoReporteForm({ campusList, campusDefault }: { campusList: Campus[]; campusDefault?: string }) {
+export default function NuevoReporteForm({ campusList, campusDefault, encuentro }: { campusList: Campus[]; campusDefault?: string; encuentro?: Encuentro }) {
   const router = useRouter();
   const [pending, startT] = useTransition();
-  const [cId, setCId]   = useState(campusDefault ?? campusList[0]?.id ?? "");
-  const [fecha, setF]   = useState(new Date().toISOString().split("T")[0]);
-  const [tipo, setT]    = useState("domingo");
-  const [hora, setH]    = useState("11:00");
-  const [horaCustom, setHoraCustom] = useState("");
-  const [modal, setM]   = useState("presencial");
-  const [pred, setPred] = useState("");
-  const [msj,  setMsj]  = useState("");
-  const [tGrl, setTGrl] = useState(0);
-  const [paj,  setPaj]  = useState(0);
-  const [asis, setAsis] = useState<AsistenciaDetalle>(DA);
-  const [vols, setVols] = useState<VoluntariosDetalle>(DV);
-  const [oPaj, setOPaj] = useState(0);
-  const [oEsp, setOEsp] = useState(0);
-  const [lidV, setLidV] = useState("");
-  const [admC, setAdmC] = useState("");
+  const isEdit = !!encuentro;
+
+  const [cId, setCId]   = useState(encuentro?.campus_id ?? campusDefault ?? campusList[0]?.id ?? "");
+  const [fecha, setF]   = useState(encuentro?.fecha ?? new Date().toISOString().split("T")[0]);
+  const [tipo, setT]    = useState<string>(encuentro?.tipo ?? "domingo");
+  const initHora = encuentro?.horario && HORARIOS.includes(encuentro.horario) ? encuentro.horario : encuentro?.horario ? "__custom" : "11:00";
+  const [hora, setH]    = useState(initHora);
+  const [horaCustom, setHoraCustom] = useState(initHora === "__custom" ? (encuentro?.horario ?? "") : "");
+  const [modal, setM]   = useState<string>(encuentro?.modalidad ?? "presencial");
+  const [pred, setPred] = useState(encuentro?.predicador ?? "");
+  const [msj,  setMsj]  = useState(encuentro?.nombre_mensaje ?? "");
+  const [tGrl, setTGrl] = useState(encuentro?.total_general ?? 0);
+  const [paj,  setPaj]  = useState(encuentro?.acepto_jesus_presencial ?? 0);
+  const [asis, setAsis] = useState<AsistenciaDetalle>(encuentro?.asistencia ?? DA);
+  const [vols, setVols] = useState<VoluntariosDetalle>(encuentro?.voluntarios ?? DV);
+  const [oPaj, setOPaj] = useState(encuentro?.online?.acepto_jesus ?? 0);
+  const [oEsp, setOEsp] = useState(encuentro?.online?.espectadores_max ?? 0);
+  const [lidV, setLidV] = useState(encuentro?.lideres_voluntarios ?? "");
+  const [admC, setAdmC] = useState(encuentro?.admins_campus ?? "");
   const [saved, setSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewEstado, setPreviewEstado] = useState<"borrador" | "enviado">("enviado");
@@ -116,10 +119,18 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
   function confirmSubmit() {
     startT(async () => {
       try {
-        await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, previewEstado);
-        toast.success(previewEstado==="enviado" ? "✓ Reporte enviado correctamente" : "Borrador guardado");
-        setShowPreview(false);
-        setSaved(true);
+        if (isEdit && encuentro) {
+          const { actualizarEncuentro } = await import("@/lib/actions/encuentros");
+          await actualizarEncuentro(encuentro.id, { campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null, estado: previewEstado });
+          toast.success("✓ Reporte actualizado correctamente");
+          setShowPreview(false);
+          router.push(`/encuentros/${encuentro.id}`);
+        } else {
+          await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, previewEstado);
+          toast.success(previewEstado==="enviado" ? "✓ Reporte enviado correctamente" : "Borrador guardado");
+          setShowPreview(false);
+          setSaved(true);
+        }
       } catch (e) { toast.error((e as Error).message ?? "Error al guardar"); }
     });
   }
