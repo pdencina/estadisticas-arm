@@ -47,7 +47,7 @@ const DV: VoluntariosDetalle  = { servicio:0,tecnica:0,kids:0,tweens:0,worship:0
 const ASIS_LABELS: Record<keyof AsistenciaDetalle, string> = { auditorio:"Auditorio",kids:"Kids",tweens:"Tweens",sala_bebe:"Sala bebé",sala_sensorial:"Sala sensorial",cambio:"Cambio" };
 const VOL_LABELS: Record<keyof VoluntariosDetalle, string> = { servicio:"Servicio",tecnica:"Técnica",kids:"Kids",tweens:"Tweens",worship:"Worship",cocina:"Cocina",rrss:"R.R.S.S",seguridad:"Seguridad",sala_bebes:"Sala bebés",conexion:"Conexión",oracion:"Oración",merch:"Merch",amor_por_la_casa:"Amor casa",sala_sensorial:"Sala sensorial",punto_siembra:"Pto. siembra",cambios:"Cambios" };
 
-export default function NuevoReporteForm({ campusList, campusDefault, encuentro }: { campusList: Campus[]; campusDefault?: string; encuentro?: Encuentro }) {
+export default function NuevoReporteForm({ campusList, campusDefault, encuentro, userRol }: { campusList: Campus[]; campusDefault?: string; encuentro?: Encuentro; userRol?: string }) {
   const router = useRouter();
   const [pending, startT] = useTransition();
   const isEdit = !!encuentro;
@@ -115,17 +115,19 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro 
   }
 
   function confirmSubmit() {
+    // Voluntarios → pendiente (needs admin campus approval), admins → enviado
+    const estado = userRol === "voluntario" ? "pendiente" : "enviado";
     startT(async () => {
       try {
         if (isEdit && encuentro) {
           const { actualizarEncuentro } = await import("@/lib/actions/encuentros");
-          await actualizarEncuentro(encuentro.id, { campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null, estado: "enviado" });
+          await actualizarEncuentro(encuentro.id, { campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null, estado });
           toast.success("✓ Reporte actualizado correctamente");
           setShowPreview(false);
           router.push(`/encuentros/${encuentro.id}`);
         } else {
-          await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, "enviado");
-          toast.success("✓ Reporte enviado correctamente");
+          await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, estado as "enviado");
+          toast.success(estado === "pendiente" ? "✓ Reporte enviado — pendiente de aprobación" : "✓ Reporte enviado correctamente");
           setShowPreview(false);
           setSaved(true);
         }

@@ -25,8 +25,8 @@ export default async function DashboardPage() {
   const campusVis = user?.rol === "admin_global" ? campusList : campusList.filter(c => c.id === cId);
   const maxTotal = Math.max(...campusVis.map(c => c.semana_actual.total), 1);
 
-  const ESTADO_BADGE: Record<string, string> = { borrador: "badge-amber", enviado: "badge-green", validado: "badge-teal" };
-  const ESTADO_LABEL: Record<string, string> = { borrador: "Borrador", enviado: "Enviado", validado: "Validado" };
+  const ESTADO_BADGE: Record<string, string> = { pendiente: "badge-amber", enviado: "badge-green", validado: "badge-teal", borrador: "badge-amber" };
+  const ESTADO_LABEL: Record<string, string> = { pendiente: "Pendiente", enviado: "Enviado", validado: "Validado", borrador: "Borrador" };
 
   return (
     <div className="page space-y-6">
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
           <AlertCircle size={15} className="text-amber-600 shrink-0" />
           <p className="text-sm text-amber-700 flex-1">
-            Hay <strong>{pendientes.length}</strong> reporte{pendientes.length !== 1 ? "s" : ""} pendiente{pendientes.length !== 1 ? "s" : ""} de envío.
+            Hay <strong>{pendientes.length}</strong> reporte{pendientes.length !== 1 ? "s" : ""} pendiente{pendientes.length !== 1 ? "s" : ""} de aprobación.
           </p>
           <Link href="/encuentros" className="text-xs font-semibold text-amber-700 hover:underline">Ver →</Link>
         </div>

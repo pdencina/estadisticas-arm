@@ -5,14 +5,14 @@ import { fmt, fmtFecha, TIPO_LABELS } from "@/lib/utils";
 import { PlusCircle, ArrowRight } from "lucide-react";
 import AuthLayout from "@/components/layout/AuthLayout";
 export const revalidate = 60;
-const EB: Record<string,string> = { borrador:"badge-amber", enviado:"badge-green", validado:"badge-teal" };
-const EL: Record<string,string> = { borrador:"Borrador", enviado:"Enviado", validado:"Validado" };
+const EB: Record<string,string> = { pendiente:"badge-amber", enviado:"badge-green", validado:"badge-teal", borrador:"badge-amber" };
+const EL: Record<string,string> = { pendiente:"Pendiente", enviado:"Enviado", validado:"Validado", borrador:"Borrador" };
 export default async function Page() {
   const user = await getCurrentUser();
   const cId = user?.rol==="admin_global"?undefined:user?.campus_id??undefined;
   const isVol = user?.rol === "voluntario";
   const enc = isVol ? await getEncuentrosSemanaActual(cId) : await getEncuentros(cId);
-  const cnts={b:enc.filter(e=>e.estado==="borrador").length,e:enc.filter(e=>e.estado==="enviado").length,v:enc.filter(e=>e.estado==="validado").length};
+  const cnts={p:enc.filter(e=>e.estado==="pendiente").length,e:enc.filter(e=>e.estado==="enviado").length,v:enc.filter(e=>e.estado==="validado").length};
   return (
     <AuthLayout>
       <div className="page space-y-5">
@@ -26,7 +26,7 @@ export default async function Page() {
         {!isVol && (
           <div className="flex flex-wrap gap-2">
             <span className="badge badge-gray">Total: {enc.length}</span>
-            {cnts.b>0&&<span className="badge badge-amber">{cnts.b} pendiente{cnts.b!==1?"s":""}</span>}
+            {cnts.p>0&&<span className="badge badge-amber">{cnts.p} pendiente{cnts.p!==1?"s":""}</span>}
             {cnts.e>0&&<span className="badge badge-green">{cnts.e} enviado{cnts.e!==1?"s":""}</span>}
             {cnts.v>0&&<span className="badge badge-teal">{cnts.v} validado{cnts.v!==1?"s":""}</span>}
           </div>

@@ -128,7 +128,7 @@ export default async function PastorPage() {
           <div className="px-5 py-4 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700">Encuentros reportados esta semana</h3>
           </div>
-          {encuentros.filter(e=>e.estado!=="borrador").length === 0 ? (
+          {encuentros.filter(e=>e.estado!=="pendiente").length === 0 ? (
             <div className="py-8 text-center text-sm text-gray-400">Sin encuentros reportados aún</div>
           ) : (
             <div className="overflow-x-auto">
@@ -137,7 +137,7 @@ export default async function PastorPage() {
                   <tr><th>Campus</th><th>Día</th><th>Predicador</th><th>Mensaje</th><th className="text-right">Total</th><th className="text-right">PAJ</th></tr>
                 </thead>
                 <tbody>
-                  {encuentros.filter(e=>e.estado!=="borrador").sort((a,b)=>new Date(b.fecha).getTime()-new Date(a.fecha).getTime()).map(e=>(
+                  {encuentros.filter(e=>e.estado!=="pendiente").sort((a,b)=>new Date(b.fecha).getTime()-new Date(a.fecha).getTime()).map(e=>(
                     <tr key={e.id}>
                       <td><span className="font-semibold">{e.campus?.nombre}</span></td>
                       <td className="text-gray-500 text-xs capitalize">{format(parseISO(e.fecha),"EEEE d MMM",{locale:es})} · {e.horario}</td>

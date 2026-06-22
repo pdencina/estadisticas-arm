@@ -2,16 +2,17 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getEncuentroById } from "@/lib/queries/encuentros";
 import { getCurrentUser } from "@/lib/queries/users";
-import { validarEncuentro } from "@/lib/actions/encuentros";
+import { validarEncuentro, aprobarEncuentro } from "@/lib/actions/encuentros";
 import { fmt, fmtFecha, TIPO_LABELS, MODALIDAD_LABELS } from "@/lib/utils";
-import { ArrowLeft, CheckCircle, Clock, Shield } from "lucide-react";
+import { ArrowLeft, CheckCircle, Clock, Shield, Send } from "lucide-react";
 
 interface Props { params: { id: string } }
 
 const ECFG = {
-  borrador: { cls: "badge-amber", icon: Clock,       lbl: "Borrador" },
-  enviado:  { cls: "badge-green", icon: CheckCircle, lbl: "Enviado"  },
-  validado: { cls: "badge-teal",  icon: Shield,      lbl: "Validado" },
+  pendiente: { cls: "badge-amber",  icon: Clock,       lbl: "Pendiente de revisión" },
+  enviado:   { cls: "badge-green",  icon: Send,        lbl: "Enviado"  },
+  validado:  { cls: "badge-teal",   icon: Shield,      lbl: "Validado" },
+  borrador:  { cls: "badge-amber",  icon: Clock,       lbl: "Borrador" },
 } as const;
 
 const LBL: Record<string,string> = { auditorio:"Auditorio",kids:"Kids",tweens:"Tweens",sala_bebe:"Sala bebé",sala_sensorial:"Sala sensorial",cambio:"Cambio",servicio:"Servicio",tecnica:"Técnica",worship:"Worship",cocina:"Cocina",rrss:"RRSS",seguridad:"Seguridad",sala_bebes:"Sala bebés",conexion:"Conexión",oracion:"Oración",merch:"Merch",amor_por_la_casa:"Amor casa",punto_siembra:"Pto. siembra",cambios:"Cambios" };
@@ -21,10 +22,19 @@ export default async function Page({ params }: Props) {
   if (!enc) notFound();
   if (user?.rol !== "admin_global" && enc.campus_id !== user?.campus_id) redirect("/encuentros");
 
-  const cfg = ECFG[enc.estado];
+  const cfg = ECFG[enc.estado] ?? ECFG.pendiente;
   const Icon = cfg.icon;
   const tV = Object.values(enc.voluntarios??{}).reduce((s,v)=>s+(v as number),0);
   const paj = (enc.acepto_jesus_presencial??0)+(enc.online?.acepto_jesus??0);
+  const canApprove = (user?.rol === "admin_campus" || user?.rol === "admin_global") && enc.estado === "pendiente";
+  const canValidate = user?.rol === "admin_global" && enc.estado === "enviado";
+  const canEdit = enc.estado === "pendiente" || (user?.rol === "admin_global");
+
+  async function aprobar() {
+    "use server";
+    await aprobarEncuentro(params.id);
+    redirect(`/encuentros/${params.id}`);
+  }
 
   async function validar() {
     "use server";
@@ -38,17 +48,39 @@ export default async function Page({ params }: Props) {
         <Link href="/encuentros" className="btn-ghost text-xs mb-3 inline-flex"><ArrowLeft size={12}/>Volver</Link>
         <div className="flex flex-wrap items-start gap-3">
           <div className="flex-1">
-            <h2 className="text-xl font-bold">{TIPO_LABELS[enc.tipo]} · {enc.horario}</h2>
+            <h2 className="text-xl font-bold">{TIPO_LABELS[enc.tipo] ?? enc.tipo} · {enc.horario}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{enc.campus?.nombre} · {fmtFecha(enc.fecha)}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className={`badge ${cfg.cls} flex items-center gap-1`}><Icon size={10}/>{cfg.lbl}</span>
-            {user?.rol==="admin_global"&&enc.estado==="enviado"&&(
-              <form action={validar}><button className="btn-primary btn-sm"><Shield size={11}/>Validar</button></form>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Approval/validation banner */}
+      {canApprove && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
+          <Clock size={15} className="text-amber-600 shrink-0" />
+          <p className="text-sm text-amber-700 flex-1">
+            Este reporte fue subido por un voluntario y está pendiente de revisión.
+          </p>
+          <form action={aprobar}>
+            <button className="btn-primary btn-sm"><CheckCircle size={11}/>Aprobar y enviar</button>
+          </form>
+        </div>
+      )}
+
+      {canValidate && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50">
+          <Send size={15} className="text-emerald-600 shrink-0" />
+          <p className="text-sm text-emerald-700 flex-1">
+            Reporte enviado por admin de campus. Podés validarlo.
+          </p>
+          <form action={validar}>
+            <button className="btn-primary btn-sm"><Shield size={11}/>Validar</button>
+          </form>
+        </div>
+      )}
 
       <div className="card p-5">
         <h3 className="text-sm font-semibold text-gray-700 mb-4">Información</h3>
@@ -95,9 +127,11 @@ export default async function Page({ params }: Props) {
         </div>
       </div>
 
-      <div className="flex justify-end pb-8">
-        <Link href={`/nuevo-reporte?edit=${params.id}`} className="btn-secondary">Editar reporte</Link>
-      </div>
+      {canEdit && (
+        <div className="flex justify-end pb-8">
+          <Link href={`/nuevo-reporte?edit=${params.id}`} className="btn-secondary">Editar reporte</Link>
+        </div>
+      )}
     </div>
   );
 }

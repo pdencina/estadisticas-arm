@@ -17,7 +17,7 @@ export default async function Page({ searchParams }: { searchParams: { edit?: st
           <h2 className="text-xl font-bold">{isEdit ? "Editar reporte" : "Nuevo reporte de encuentro"}</h2>
           <p className="text-xs text-gray-400 mt-0.5">{isEdit ? "Modificá los campos necesarios" : "Completa todos los campos"}</p>
         </div>
-        <NuevoReporteForm campusList={disp} campusDefault={user?.campus_id??undefined} encuentro={encuentro ?? undefined} />
+        <NuevoReporteForm campusList={disp} campusDefault={user?.campus_id??undefined} encuentro={encuentro ?? undefined} userRol={user?.rol} />
       </div>
     </AuthLayout>
   );

@@ -31,7 +31,7 @@ export type TipoEncuentro =
   | "encuentro_jovenes" | "encuentro_hombres" | "otro";
 
 export type Modalidad = "presencial" | "online" | "hibrido";
-export type EstadoEncuentro = "borrador" | "enviado" | "validado";
+export type EstadoEncuentro = "pendiente" | "enviado" | "validado";
 
 // ── Detalle asistencia ──────────────────────────────────────────────────────
 export interface AsistenciaDetalle {

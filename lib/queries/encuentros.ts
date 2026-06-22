@@ -32,7 +32,7 @@ export async function getEncuentroById(id: string): Promise<Encuentro | null> {
 
 export async function getEncuentrosPendientes(campusId?: string): Promise<Encuentro[]> {
   const supabase = createClient();
-  let q = supabase.from("encuentros").select(SEL).eq("estado", "borrador").order("fecha", { ascending: false });
+  let q = supabase.from("encuentros").select(SEL).eq("estado", "pendiente").order("fecha", { ascending: false });
   if (campusId) q = q.eq("campus_id", campusId);
   const { data } = await q;
   return (data as Encuentro[]) ?? [];

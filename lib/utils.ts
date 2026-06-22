@@ -53,9 +53,9 @@ export const ROL_LABELS: Record<string, string> = {
 };
 
 export const ESTADO_LABELS: Record<string, string> = {
-  borrador: "Borrador",
-  enviado:  "Enviado",
-  validado: "Validado",
+  pendiente: "Pendiente",
+  enviado:   "Enviado",
+  validado:  "Validado",
 };
 
 export const TIPOS_ENCUENTRO = [
