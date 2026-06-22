@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { crearEncuentro } from "@/lib/actions/encuentros";
 import { HORARIOS, TIPOS_ENCUENTRO } from "@/lib/utils";
 import type { Campus, AsistenciaDetalle, VoluntariosDetalle, Encuentro } from "@/types";
-import { Loader2, Save, Send, Copy, X, Eye } from "lucide-react";
+import { Loader2, Send, Copy, X, Eye } from "lucide-react";
 
 function Ctr({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -71,7 +71,6 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro 
   const [admC, setAdmC] = useState(encuentro?.admins_campus ?? "");
   const [saved, setSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewEstado, setPreviewEstado] = useState<"borrador" | "enviado">("enviado");
 
   const uA = (k: keyof AsistenciaDetalle,   v: number) => setAsis(p=>({...p,[k]:v}));
   const uV = (k: keyof VoluntariosDetalle, v: number) => setVols(p=>({...p,[k]:v}));
@@ -103,16 +102,15 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openPreview(estado: "borrador" | "enviado") {
+  function openPreview() {
     if (!horarioFinal) {
       toast.error("Ingresá un horario válido.");
       return;
     }
-    if (estado === "enviado" && tGrl === 0) {
+    if (tGrl === 0) {
       toast.error("El total general no puede ser 0 para enviar.");
       return;
     }
-    setPreviewEstado(estado);
     setShowPreview(true);
   }
 
@@ -121,13 +119,13 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro 
       try {
         if (isEdit && encuentro) {
           const { actualizarEncuentro } = await import("@/lib/actions/encuentros");
-          await actualizarEncuentro(encuentro.id, { campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null, estado: previewEstado });
+          await actualizarEncuentro(encuentro.id, { campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null, estado: "enviado" });
           toast.success("✓ Reporte actualizado correctamente");
           setShowPreview(false);
           router.push(`/encuentros/${encuentro.id}`);
         } else {
-          await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, previewEstado);
-          toast.success(previewEstado==="enviado" ? "✓ Reporte enviado correctamente" : "Borrador guardado");
+          await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, "enviado");
+          toast.success("✓ Reporte enviado correctamente");
           setShowPreview(false);
           setSaved(true);
         }
@@ -212,8 +210,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro 
       </Sec>
 
       <div className="flex items-center justify-end gap-3 pb-8">
-        <button className="btn-secondary" disabled={pending || saved} onClick={()=>openPreview("borrador")}><Save size={13}/>Guardar borrador</button>
-        <button className="btn-primary" disabled={pending || saved} onClick={()=>openPreview("enviado")}><Eye size={13}/>Revisar y enviar</button>
+        <button className="btn-primary" disabled={pending || saved} onClick={()=>openPreview()}><Eye size={13}/>Revisar y enviar</button>
       </div>
 
       {/* Preview Modal */}
@@ -306,7 +303,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro 
               </button>
               <button onClick={confirmSubmit} disabled={pending} className="btn-primary">
                 {pending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                {previewEstado === "enviado" ? "Confirmar envío" : "Guardar borrador"}
+                Confirmar envío
               </button>
             </div>
           </div>
