@@ -3,12 +3,15 @@
 -- Ejecutar en: Supabase Dashboard → SQL Editor
 -- ============================================================
 
--- Ampliar constraint de tipo para incluir nuevos valores
+-- Ampliar constraint de tipo (se remueve encuentro_global, miércoles ahora es "global")
 ALTER TABLE public.encuentros DROP CONSTRAINT IF EXISTS encuentros_tipo_check;
 ALTER TABLE public.encuentros ADD CONSTRAINT encuentros_tipo_check
   CHECK (tipo IN (
     'domingo','miercoles','jueves','sabado',
-    'prayer_room','encuentro_global',
+    'prayer_room',
     'encuentro_mujeres','encuentro_jovenes','encuentro_hombres',
     'otro'
   ));
+
+-- Migrar registros existentes de encuentro_global a miercoles (por si hay datos previos)
+UPDATE public.encuentros SET tipo = 'miercoles' WHERE tipo = 'encuentro_global';

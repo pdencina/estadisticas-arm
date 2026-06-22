@@ -29,14 +29,14 @@ export function deltaColor(n: number) {
 
 export const TIPO_LABELS: Record<string, string> = {
   domingo:            "Domingo",
-  miercoles:          "Miércoles",
+  miercoles:          "Miércoles Global",
   jueves:             "Jueves",
   sabado:             "Sábado",
   prayer_room:        "Prayer Room",
-  encuentro_global:   "Encuentro Global",
   encuentro_mujeres:  "Encuentro Mujeres",
   encuentro_jovenes:  "Encuentro Jóvenes",
   encuentro_hombres:  "Encuentro Hombres",
+  encuentro_global:   "Encuentro Global",
   otro:               "Otro",
 };
 
@@ -60,11 +60,10 @@ export const ESTADO_LABELS: Record<string, string> = {
 
 export const TIPOS_ENCUENTRO = [
   { value: "domingo",            label: "Domingo"            },
-  { value: "miercoles",          label: "Miércoles"          },
+  { value: "miercoles",          label: "Miércoles Global"   },
   { value: "jueves",             label: "Jueves"             },
   { value: "sabado",             label: "Sábado"             },
   { value: "prayer_room",        label: "Prayer Room"        },
-  { value: "encuentro_global",   label: "Encuentro Global"   },
   { value: "encuentro_mujeres",  label: "Encuentro Mujeres"  },
   { value: "encuentro_jovenes",  label: "Encuentro Jóvenes"  },
   { value: "encuentro_hombres",  label: "Encuentro Hombres"  },

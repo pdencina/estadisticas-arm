@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { crearEncuentro } from "@/lib/actions/encuentros";
 import { HORARIOS, TIPOS_ENCUENTRO } from "@/lib/utils";
 import type { Campus, AsistenciaDetalle, VoluntariosDetalle } from "@/types";
-import { Loader2, Save, Send, Copy } from "lucide-react";
+import { Loader2, Save, Send, Copy, X, Eye } from "lucide-react";
 
 function Ctr({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -32,8 +32,20 @@ function Sec({ title, badge, children }: { title: string; badge?: string; childr
   );
 }
 
+function PreviewRow({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-xs font-semibold text-gray-800">{value}</span>
+    </div>
+  );
+}
+
 const DA: AsistenciaDetalle   = { auditorio:0,kids:0,tweens:0,sala_bebe:0,sala_sensorial:0,cambio:0 };
 const DV: VoluntariosDetalle  = { servicio:0,tecnica:0,kids:0,tweens:0,worship:0,cocina:0,rrss:0,seguridad:0,sala_bebes:0,conexion:0,oracion:0,merch:0,amor_por_la_casa:0,sala_sensorial:0,punto_siembra:0,cambios:0 };
+
+const ASIS_LABELS: Record<keyof AsistenciaDetalle, string> = { auditorio:"Auditorio",kids:"Kids",tweens:"Tweens",sala_bebe:"Sala bebé",sala_sensorial:"Sala sensorial",cambio:"Cambio" };
+const VOL_LABELS: Record<keyof VoluntariosDetalle, string> = { servicio:"Servicio",tecnica:"Técnica",kids:"Kids",tweens:"Tweens",worship:"Worship",cocina:"Cocina",rrss:"R.R.S.S",seguridad:"Seguridad",sala_bebes:"Sala bebés",conexion:"Conexión",oracion:"Oración",merch:"Merch",amor_por_la_casa:"Amor casa",sala_sensorial:"Sala sensorial",punto_siembra:"Pto. siembra",cambios:"Cambios" };
 
 export default function NuevoReporteForm({ campusList, campusDefault }: { campusList: Campus[]; campusDefault?: string }) {
   const router = useRouter();
@@ -55,6 +67,8 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
   const [lidV, setLidV] = useState("");
   const [admC, setAdmC] = useState("");
   const [saved, setSaved] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewEstado, setPreviewEstado] = useState<"borrador" | "enviado">("enviado");
 
   const uA = (k: keyof AsistenciaDetalle,   v: number) => setAsis(p=>({...p,[k]:v}));
   const uV = (k: keyof VoluntariosDetalle, v: number) => setVols(p=>({...p,[k]:v}));
@@ -62,6 +76,9 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
   const tV = Object.values(vols).reduce((s,v)=>s+v,0);
 
   const horarioFinal = hora === "__custom" ? horaCustom : hora;
+  const campusNombre = campusList.find(c => c.id === cId)?.nombre ?? "—";
+  const tipoLabel = TIPOS_ENCUENTRO.find(t => t.value === tipo)?.label ?? tipo;
+  const modalLabel = modal === "presencial" ? "Presencial" : modal === "online" ? "Online" : "Híbrido";
 
   function resetNumeros() {
     setTGrl(0);
@@ -76,7 +93,6 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
   }
 
   function handleDuplicar() {
-    // Mantiene campus, fecha, tipo, liderazgo — resetea números y horario
     resetNumeros();
     setH("11:00");
     setHoraCustom("");
@@ -84,15 +100,25 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function submit(estado: "borrador" | "enviado") {
+  function openPreview(estado: "borrador" | "enviado") {
     if (!horarioFinal) {
       toast.error("Ingresá un horario válido.");
       return;
     }
+    if (estado === "enviado" && tGrl === 0) {
+      toast.error("El total general no puede ser 0 para enviar.");
+      return;
+    }
+    setPreviewEstado(estado);
+    setShowPreview(true);
+  }
+
+  function confirmSubmit() {
     startT(async () => {
       try {
-        await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, estado);
-        toast.success(estado==="enviado" ? "✓ Reporte enviado correctamente" : "Borrador guardado");
+        await crearEncuentro({ campus_id:cId, fecha, tipo:tipo as never, horario:horarioFinal, modalidad:modal as never, predicador:pred||null, nombre_mensaje:msj||null, total_general:tGrl, acepto_jesus_presencial:paj, asistencia:asis, voluntarios:vols, online:{acepto_jesus:oPaj,espectadores_max:oEsp}, lideres_voluntarios:lidV||null, admins_campus:admC||null }, previewEstado);
+        toast.success(previewEstado==="enviado" ? "✓ Reporte enviado correctamente" : "Borrador guardado");
+        setShowPreview(false);
         setSaved(true);
       } catch (e) { toast.error((e as Error).message ?? "Error al guardar"); }
     });
@@ -175,9 +201,106 @@ export default function NuevoReporteForm({ campusList, campusDefault }: { campus
       </Sec>
 
       <div className="flex items-center justify-end gap-3 pb-8">
-        <button className="btn-secondary" disabled={pending || saved} onClick={()=>submit("borrador")}><Save size={13}/>Guardar borrador</button>
-        <button className="btn-primary" disabled={pending || saved} onClick={()=>submit("enviado")}>{pending?<Loader2 size={13} className="animate-spin"/>:<Send size={13}/>}Enviar reporte</button>
+        <button className="btn-secondary" disabled={pending || saved} onClick={()=>openPreview("borrador")}><Save size={13}/>Guardar borrador</button>
+        <button className="btn-primary" disabled={pending || saved} onClick={()=>openPreview("enviado")}><Eye size={13}/>Revisar y enviar</button>
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-100 flex items-center justify-between rounded-t-2xl z-10">
+              <div>
+                <h3 className="text-base font-bold text-gray-800">Vista previa del reporte</h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">Revisá los datos antes de confirmar</p>
+              </div>
+              <button onClick={() => setShowPreview(false)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                <X size={16} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              {/* Info general */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Encuentro</p>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <PreviewRow label="Campus" value={campusNombre} />
+                  <PreviewRow label="Fecha" value={fecha} />
+                  <PreviewRow label="Tipo" value={tipoLabel} />
+                  <PreviewRow label="Horario" value={horarioFinal} />
+                  <PreviewRow label="Modalidad" value={modalLabel} />
+                  {pred && <PreviewRow label="Predicador/a" value={pred} />}
+                  {msj && <PreviewRow label="Mensaje" value={msj} />}
+                </div>
+              </div>
+
+              {/* Totales */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Totales</p>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <PreviewRow label="Total general" value={tGrl.toLocaleString("es-CL")} />
+                  <PreviewRow label="Aceptaron a Jesús" value={paj.toLocaleString("es-CL")} />
+                </div>
+              </div>
+
+              {/* Asistencia */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Asistencia <span className="text-purple-500">({tA})</span></p>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  {(Object.entries(asis) as [keyof AsistenciaDetalle, number][]).filter(([,v]) => v > 0).map(([k,v]) => (
+                    <PreviewRow key={k} label={ASIS_LABELS[k]} value={v} />
+                  ))}
+                  {tA === 0 && <p className="text-xs text-gray-400 text-center py-1">Sin desglose</p>}
+                </div>
+              </div>
+
+              {/* Voluntarios */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Voluntarios <span className="text-purple-500">({tV})</span></p>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  {(Object.entries(vols) as [keyof VoluntariosDetalle, number][]).filter(([,v]) => v > 0).map(([k,v]) => (
+                    <PreviewRow key={k} label={VOL_LABELS[k]} value={v} />
+                  ))}
+                  {tV === 0 && <p className="text-xs text-gray-400 text-center py-1">Sin desglose</p>}
+                </div>
+              </div>
+
+              {/* Online */}
+              {(oPaj > 0 || oEsp > 0) && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Online</p>
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    {oPaj > 0 && <PreviewRow label="Aceptaron a Jesús (online)" value={oPaj} />}
+                    {oEsp > 0 && <PreviewRow label="Espectadores simultáneos" value={oEsp} />}
+                  </div>
+                </div>
+              )}
+
+              {/* Liderazgo */}
+              {(lidV || admC) && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Liderazgo</p>
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    {lidV && <PreviewRow label="Líderes de voluntarios" value={lidV} />}
+                    {admC && <PreviewRow label="Adm. de campus" value={admC} />}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Acciones */}
+            <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 rounded-b-2xl">
+              <button onClick={() => setShowPreview(false)} className="btn-secondary">
+                <X size={13} />Volver a editar
+              </button>
+              <button onClick={confirmSubmit} disabled={pending} className="btn-primary">
+                {pending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                {previewEstado === "enviado" ? "Confirmar envío" : "Guardar borrador"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
