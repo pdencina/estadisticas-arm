@@ -4,11 +4,10 @@ import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import VoluntarioLayout from "@/components/layout/VoluntarioLayout";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // Voluntarios get a simplified mobile-first layout
   if (user.rol === "voluntario") {
     return <VoluntarioLayout user={user}>{children}</VoluntarioLayout>;
   }

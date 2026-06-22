@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getDashboardKPIs, getEncuentrosSemanaActual, getEncuentrosPendientes, getContadorAlmas } from "@/lib/queries/encuentros";
 import { getCampusConEstadisticas } from "@/lib/queries/campus";
 import { getCurrentUser } from "@/lib/queries/users";
@@ -9,6 +10,7 @@ export const revalidate = 60;
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
+  if (user?.rol === "voluntario") redirect("/nuevo-reporte");
   const cId = user?.rol === "admin_global" ? undefined : user?.campus_id ?? undefined;
 
   const [kpis, encuentros, pendientes, campusList, contador] = await Promise.all([
