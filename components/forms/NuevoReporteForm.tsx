@@ -9,13 +9,16 @@ import { Loader2, Send, Copy, X, Eye } from "lucide-react";
 
 function Ctr({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <div className="ctr">
-      <span className="text-xs text-gray-500 truncate pr-2">{label}</span>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <button type="button" className="ctr-btn" onClick={() => onChange(Math.max(0, value - 1))}>−</button>
-        <span className="text-sm font-black w-7 text-center tabular-nums">{value}</span>
-        <button type="button" className="ctr-btn" onClick={() => onChange(value + 1)}>+</button>
-      </div>
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] text-gray-500 truncate">{label}</span>
+      <input
+        type="number"
+        min={0}
+        className="input text-center text-sm font-bold py-1.5 px-2 tabular-nums"
+        value={value || ""}
+        onChange={e => onChange(Number(e.target.value) || 0)}
+        placeholder="0"
+      />
     </div>
   );
 }
