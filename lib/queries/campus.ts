@@ -8,6 +8,12 @@ export async function getCampus(): Promise<Campus[]> {
   return (data as Campus[]) ?? [];
 }
 
+export async function getAllCampus(): Promise<Campus[]> {
+  const supabase = createClient();
+  const { data } = await supabase.from("campus").select("*").order("nombre");
+  return (data as Campus[]) ?? [];
+}
+
 export async function getCampusById(id: string): Promise<Campus | null> {
   const supabase = createClient();
   const { data } = await supabase.from("campus").select("*").eq("id", id).maybeSingle();
