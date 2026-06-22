@@ -1,5 +1,5 @@
 "use server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/queries/users";
 import { revalidatePath } from "next/cache";
 
@@ -7,29 +7,30 @@ export async function invitarUsuario(email: string, nombre: string, rol: string,
   const admin = await getCurrentUser();
   if (!admin || admin.rol !== "admin_global") throw new Error("Sin permisos.");
 
-  const supabase = createClient();
+  const supabaseAdmin = createAdminClient();
 
-  // Create user via admin API (invites the user)
-  const { data, error } = await supabase.auth.admin.createUser({
+  // Create user via admin API
+  const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
+    password: email.split("@")[0] + "2026!", // Contraseña temporal
     email_confirm: true,
     user_metadata: { nombre, rol },
   });
 
   if (error) {
     // If user already exists, just update their profile
-    if (error.message.includes("already been registered")) {
-      const { data: existingUsers } = await supabase
+    if (error.message.includes("already been registered") || error.message.includes("already exists")) {
+      const { data: existingUser } = await supabaseAdmin
         .from("user_profiles")
         .select("id")
         .eq("email", email)
         .maybeSingle();
 
-      if (existingUsers) {
-        const { error: updateErr } = await supabase
+      if (existingUser) {
+        const { error: updateErr } = await supabaseAdmin
           .from("user_profiles")
           .update({ nombre, rol, campus_id: campusId, activo: true })
-          .eq("id", existingUsers.id);
+          .eq("id", existingUser.id);
         if (updateErr) throw new Error(updateErr.message);
         revalidatePath("/usuarios");
         return { success: true, message: "Usuario actualizado" };
@@ -40,7 +41,8 @@ export async function invitarUsuario(email: string, nombre: string, rol: string,
 
   // Update profile with role and campus
   if (data.user) {
-    const { error: profileErr } = await supabase
+    // Use admin client to bypass RLS for profile creation
+    const { error: profileErr } = await supabaseAdmin
       .from("user_profiles")
       .upsert({
         id: data.user.id,
@@ -61,8 +63,8 @@ export async function actualizarUsuario(userId: string, nombre: string, rol: str
   const admin = await getCurrentUser();
   if (!admin || admin.rol !== "admin_global") throw new Error("Sin permisos.");
 
-  const supabase = createClient();
-  const { error } = await supabase
+  const supabaseAdmin = createAdminClient();
+  const { error } = await supabaseAdmin
     .from("user_profiles")
     .update({ nombre, rol, campus_id: campusId, activo })
     .eq("id", userId);
@@ -77,10 +79,10 @@ export async function eliminarUsuario(userId: string) {
   if (!admin || admin.rol !== "admin_global") throw new Error("Sin permisos.");
   if (admin.id === userId) throw new Error("No podés eliminarte a vos mismo.");
 
-  const supabase = createClient();
+  const supabaseAdmin = createAdminClient();
   
   // Deactivate instead of delete for safety
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("user_profiles")
     .update({ activo: false })
     .eq("id", userId);
