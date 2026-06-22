@@ -22,11 +22,16 @@
 
   /* ── Layout ── */
   .sidebar {
-    @apply fixed inset-y-0 left-0 z-30 flex flex-col bg-white border-r border-gray-100;
+    @apply fixed inset-y-0 left-0 z-30 flex flex-col bg-white border-r border-gray-100
+           -translate-x-full lg:translate-x-0 transition-transform duration-200;
     width: var(--sidebar);
   }
-  .page-wrap { @apply flex flex-col min-h-screen; margin-left: var(--sidebar); }
-  .page      { @apply p-6 max-w-7xl mx-auto w-full; }
+  .sidebar.open { @apply translate-x-0; }
+  .sidebar-overlay {
+    @apply fixed inset-0 z-20 bg-black/30 backdrop-blur-sm lg:hidden;
+  }
+  .page-wrap { @apply flex flex-col min-h-screen lg:ml-[240px]; }
+  .page      { @apply p-4 sm:p-6 max-w-7xl mx-auto w-full; }
 
   /* ── Nav ── */
   .nav-link {

@@ -156,7 +156,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
       )}
 
       <Sec title="Información del encuentro">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div><label className="label">Campus</label><select className="input" value={cId} onChange={e=>setCId(e.target.value)}>{campusList.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
           <div><label className="label">Fecha</label><input type="date" className="input" value={fecha} onChange={e=>setF(e.target.value)}/></div>
           <div><label className="label">Tipo</label><select className="input" value={tipo} onChange={e=>setT(e.target.value)}>{TIPOS_ENCUENTRO.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
