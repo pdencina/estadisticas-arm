@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAllUsers, getCurrentUser } from "@/lib/queries/users";
 import { getAllCampus } from "@/lib/queries/campus";
 import AdminPanel from "@/components/forms/AdminPanel";
+import AuthLayout from "@/components/layout/AuthLayout";
 
 export const revalidate = 0;
 
@@ -18,12 +19,14 @@ export default async function UsuariosPage() {
   }
 
   return (
-    <div className="page space-y-6">
-      <div>
-        <h2 className="text-xl font-bold">Administración</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Gestión de usuarios, roles y campus</p>
+    <AuthLayout>
+      <div className="page space-y-6">
+        <div>
+          <h2 className="text-xl font-bold">Administración</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Gestión de usuarios, roles y campus</p>
+        </div>
+        <AdminPanel users={users} campusList={campus} />
       </div>
-      <AdminPanel users={users} campusList={campus} />
-    </div>
+    </AuthLayout>
   );
 }
