@@ -4,59 +4,62 @@ import { getCurrentUser } from "@/lib/queries/users";
 import { revalidatePath } from "next/cache";
 
 export async function invitarUsuario(email: string, nombre: string, rol: string, campusId: string | null) {
-  const admin = await getCurrentUser();
-  if (!admin || admin.rol !== "admin_global") throw new Error("Sin permisos.");
+  try {
+    const admin = await getCurrentUser();
+    if (!admin || admin.rol !== "admin_global") return { success: false, error: "Sin permisos." };
 
-  const supabaseAdmin = createAdminClient();
+    const supabaseAdmin = createAdminClient();
 
-  // Create user via admin API
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password: email.split("@")[0] + "2026!", // Contraseña temporal
-    email_confirm: true,
-    user_metadata: { nombre, rol },
-  });
+    // Create user via admin API
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: email.split("@")[0] + "2026!",
+      email_confirm: true,
+      user_metadata: { nombre, rol },
+    });
 
-  if (error) {
-    // If user already exists, just update their profile
-    if (error.message.includes("already been registered") || error.message.includes("already exists")) {
-      const { data: existingUser } = await supabaseAdmin
-        .from("user_profiles")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-
-      if (existingUser) {
-        const { error: updateErr } = await supabaseAdmin
+    if (error) {
+      // If user already exists, just update their profile
+      if (error.message.includes("already been registered") || error.message.includes("already exists")) {
+        const { data: existingUser } = await supabaseAdmin
           .from("user_profiles")
-          .update({ nombre, rol, campus_id: campusId, activo: true })
-          .eq("id", existingUser.id);
-        if (updateErr) throw new Error(updateErr.message);
-        revalidatePath("/usuarios");
-        return { success: true, message: "Usuario actualizado" };
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (existingUser) {
+          const { error: updateErr } = await supabaseAdmin
+            .from("user_profiles")
+            .update({ nombre, rol, campus_id: campusId, activo: true })
+            .eq("id", existingUser.id);
+          if (updateErr) return { success: false, error: updateErr.message };
+          revalidatePath("/usuarios");
+          return { success: true, message: "Usuario actualizado" };
+        }
       }
+      return { success: false, error: error.message };
     }
-    throw new Error(error.message);
-  }
 
-  // Update profile with role and campus
-  if (data.user) {
-    // Use admin client to bypass RLS for profile creation
-    const { error: profileErr } = await supabaseAdmin
-      .from("user_profiles")
-      .upsert({
-        id: data.user.id,
-        email,
-        nombre,
-        rol,
-        campus_id: campusId,
-        activo: true,
-      });
-    if (profileErr) throw new Error(profileErr.message);
-  }
+    // Update profile with role and campus
+    if (data.user) {
+      const { error: profileErr } = await supabaseAdmin
+        .from("user_profiles")
+        .upsert({
+          id: data.user.id,
+          email,
+          nombre,
+          rol,
+          campus_id: campusId,
+          activo: true,
+        });
+      if (profileErr) return { success: false, error: profileErr.message };
+    }
 
-  revalidatePath("/usuarios");
-  return { success: true, message: "Usuario creado exitosamente" };
+    revalidatePath("/usuarios");
+    return { success: true, message: "Usuario creado exitosamente" };
+  } catch (e) {
+    return { success: false, error: (e as Error).message ?? "Error inesperado" };
+  }
 }
 
 export async function actualizarUsuario(userId: string, nombre: string, rol: string, campusId: string | null, activo: boolean) {

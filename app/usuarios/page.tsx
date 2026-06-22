@@ -8,7 +8,14 @@ export const revalidate = 0;
 export default async function UsuariosPage() {
   const user = await getCurrentUser();
   if (user?.rol !== "admin_global") redirect("/dashboard");
-  const [users, campus] = await Promise.all([getAllUsers(), getAllCampus()]);
+
+  let users: Awaited<ReturnType<typeof getAllUsers>> = [];
+  let campus: Awaited<ReturnType<typeof getAllCampus>> = [];
+  try {
+    [users, campus] = await Promise.all([getAllUsers(), getAllCampus()]);
+  } catch {
+    // If queries fail, show empty state
+  }
 
   return (
     <div className="page space-y-6">

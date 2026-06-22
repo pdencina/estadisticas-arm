@@ -32,8 +32,12 @@ export default function UserModal({ user, campusList, onClose }: Props) {
           await actualizarUsuario(user.id, nombre, rol, campusId || null, activo);
           toast.success("Usuario actualizado");
         } else {
-          await invitarUsuario(email, nombre, rol, campusId || null);
-          toast.success("Usuario creado exitosamente");
+          const result = await invitarUsuario(email, nombre, rol, campusId || null);
+          if (!result.success) {
+            toast.error(result.error ?? "Error al crear usuario");
+            return;
+          }
+          toast.success(result.message ?? "Usuario creado exitosamente");
         }
         onClose();
       } catch (err) {
