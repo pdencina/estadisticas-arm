@@ -95,3 +95,10 @@ export function semanaActual() {
   const f = (d: Date) => d.toISOString().split("T")[0];
   return { lA: f(lunes), dA: f(domingo), lAn: f(lunesAnt), dAn: f(domAnt) };
 }
+
+// Aliases para compatibilidad
+export const formatNumero = fmt;
+export const formatDelta = fmtDelta;
+export const deltaClass = deltaColor;
+export const formatFecha = fmtFecha;
+export const TIPO_ENCUENTRO_LABELS = TIPO_LABELS;
