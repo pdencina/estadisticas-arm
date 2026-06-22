@@ -9,12 +9,13 @@ import { Loader2, Send, Copy, X, Eye } from "lucide-react";
 
 function Ctr({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-0.5">
       <span className="text-[11px] text-gray-500 truncate">{label}</span>
       <input
         type="number"
+        inputMode="numeric"
         min={0}
-        className="input text-center text-sm font-bold py-1.5 px-2 tabular-nums"
+        className="input text-center text-sm font-bold py-2 px-1 tabular-nums"
         value={value || ""}
         onChange={e => onChange(Number(e.target.value) || 0)}
         placeholder="0"
@@ -185,7 +186,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
       </Sec>
 
       <Sec title="Desglose de asistencia" badge={`Total: ${tA}`}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {([["auditorio","Auditorio"],["kids","Kids"],["tweens","Tweens"],["sala_bebe","Sala bebé"],["sala_sensorial","Sala sensorial"],["cambio","Cambio"]] as [keyof AsistenciaDetalle,string][]).map(([k,l])=>(
             <Ctr key={k} label={l} value={asis[k]} onChange={v=>uA(k,v)}/>
           ))}
@@ -193,7 +194,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
       </Sec>
 
       <Sec title="Voluntarios" badge={`Total: ${tV}`}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {([["servicio","Servicio"],["tecnica","Técnica"],["kids","Kids"],["tweens","Tweens"],["worship","Worship"],["cocina","Cocina"],["rrss","R.R.S.S"],["seguridad","Seguridad"],["sala_bebes","Sala bebés"],["conexion","Conexión"],["oracion","Oración"],["merch","Merch"],["amor_por_la_casa","Amor casa"],["sala_sensorial","Sala sensorial"],["punto_siembra","Pto. siembra"],["cambios","Cambios"]] as [keyof VoluntariosDetalle,string][]).map(([k,l])=>(
             <Ctr key={k} label={l} value={vols[k]} onChange={v=>uV(k,v)}/>
           ))}
