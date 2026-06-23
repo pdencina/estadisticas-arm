@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { getDashboardKPIs, getEncuentrosSemanaActual, getEncuentrosPendientes, getContadorAlmas, getEstadisticasGlobales } from "@/lib/queries/encuentros";
 import { getCampusConEstadisticas } from "@/lib/queries/campus";
 import { getCurrentUser } from "@/lib/queries/users";
-import { fmt, fmtDelta, deltaColor, TIPO_LABELS, fmtFecha, PAIS_COLOR } from "@/lib/utils";
+import { fmt, fmtDelta, deltaColor, TIPO_LABELS, fmtFecha, PAIS_COLOR, semanaActual } from "@/lib/utils";
 import { Building2, PlusCircle, ArrowRight, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export const revalidate = 60;
 
@@ -29,8 +31,19 @@ export default async function DashboardPage() {
   const ESTADO_BADGE: Record<string, string> = { pendiente: "badge-amber", enviado: "badge-green", validado: "badge-teal", borrador: "badge-amber" };
   const ESTADO_LABEL: Record<string, string> = { pendiente: "Pendiente", enviado: "Enviado", validado: "Validado", borrador: "Borrador" };
 
+  // Fecha actual formateada
+  const hoy = new Date();
+  const fechaHoy = format(hoy, "EEEE d 'de' MMMM, yyyy", { locale: es });
+  const { lA, dA } = semanaActual();
+
   return (
     <div className="page space-y-6">
+
+      {/* Header con fecha */}
+      <div>
+        <p className="text-xs text-gray-400 capitalize">{fechaHoy}</p>
+        <h1 className="text-xl font-bold text-gray-800 mt-0.5">Dashboard global</h1>
+      </div>
 
       {/* Alert pendientes */}
       {pendientes.length > 0 && (
@@ -43,99 +56,102 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Total asistentes",  val: sa.total_general,   delta: d.total_general,   color: "var(--arm)",  border: "border-l-blue-500" },
-          { label: "En auditorio",       val: sa.total_auditorio, delta: d.total_auditorio, color: "var(--teal)", border: "border-l-emerald-500" },
-          { label: "Aceptaron a Jesús",  val: sa.total_paj,       delta: d.total_paj,       color: "#D85A30",     border: "border-l-orange-500" },
-          { label: "Contador de almas",  val: contador || globales.historico.paj, delta: null,        color: "var(--arm)",  border: "border-l-blue-500", accent: true },
-        ].map((k, i) => (
-          <div key={i} className={`kpi-card border-l-4 ${k.border} ${k.accent ? "ring-1 ring-blue-100" : ""}`}>
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{k.label}</p>
-            <p className="text-3xl font-black tracking-tight" style={{ color: k.accent ? k.color : "inherit" }}>{fmt(k.val)}</p>
-            {k.delta !== null ? (
+      {/* ═══════ SEMANA ACTUAL ═══════ */}
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-sm font-semibold text-gray-700">Semana actual</h2>
+          <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{lA} al {dA}</span>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            { label: "Total asistentes", val: sa.total_general, delta: d.total_general, border: "border-l-blue-500" },
+            { label: "En auditorio", val: sa.total_auditorio, delta: d.total_auditorio, border: "border-l-emerald-500" },
+            { label: "Aceptaron a Jesús", val: sa.total_paj, delta: d.total_paj, border: "border-l-orange-500" },
+          ].map((k, i) => (
+            <div key={i} className={`kpi-card border-l-4 ${k.border}`}>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{k.label}</p>
+              <p className="text-3xl font-black tracking-tight">{fmt(k.val)}</p>
               <p className={`text-xs mt-1.5 ${deltaColor(k.delta)}`}>{fmtDelta(k.delta)} <span className="text-gray-400 font-normal">vs sem. anterior</span></p>
-            ) : (
-              <p className="text-xs mt-1.5 text-gray-400">Histórico total</p>
-            )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Barras campus semana */}
+      <div className="card p-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">Asistencia por campus — semana actual</h3>
+        {campusVis.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">Sin datos esta semana</p>
+        ) : (
+          <div className="space-y-3">
+            {[...campusVis].sort((a,b) => b.semana_actual.total - a.semana_actual.total).map(c => (
+              <Link key={c.id} href={`/campus/${c.id}`} className="flex items-center gap-3 group">
+                <span className="text-xs text-gray-400 w-28 text-right shrink-0 truncate group-hover:text-gray-700 transition-colors">{c.nombre}</span>
+                <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.round((c.semana_actual.total / maxTotal) * 100)}%`, backgroundColor: PAIS_COLOR[c.pais] ?? "var(--arm)" }} />
+                </div>
+                <span className="text-xs font-semibold text-gray-600 w-14 text-right tabular-nums shrink-0">{fmt(c.semana_actual.total)}</span>
+              </Link>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Estadísticas globales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Histórico total</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Encuentros</p>
-              <p className="text-2xl font-black mt-1">{fmt(globales.historico.encuentros)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Asistentes</p>
-              <p className="text-2xl font-black mt-1">{fmt(globales.historico.asistentes)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Aceptaron a Jesús</p>
-              <p className="text-2xl font-black mt-1" style={{ color: "var(--teal)" }}>{fmt(globales.historico.paj)}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Acumulado {globales.anio_actual.anio}</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Encuentros</p>
-              <p className="text-2xl font-black mt-1">{fmt(globales.anio_actual.encuentros)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Asistentes</p>
-              <p className="text-2xl font-black mt-1">{fmt(globales.anio_actual.asistentes)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Aceptaron a Jesús</p>
-              <p className="text-2xl font-black mt-1" style={{ color: "var(--teal)" }}>{fmt(globales.anio_actual.paj)}</p>
+      {/* ═══════ ACUMULADOS ═══════ */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Visión general</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Acumulado año */}
+          <div className="card p-5">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Acumulado {globales.anio_actual.anio}</p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500">Encuentros</span>
+                <span className="text-lg font-black">{fmt(globales.anio_actual.encuentros)}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500">Asistentes</span>
+                <span className="text-lg font-black">{fmt(globales.anio_actual.asistentes)}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500">PAJ</span>
+                <span className="text-lg font-black" style={{ color: "var(--teal)" }}>{fmt(globales.anio_actual.paj)}</span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Barras campus */}
-        <div className="card p-5 xl:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-700">Asistencia por campus — semana actual</h3>
-          </div>
-          {campusVis.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos esta semana</p>
-          ) : (
-            <div className="space-y-3">
-              {[...campusVis].sort((a,b) => b.semana_actual.total - a.semana_actual.total).map(c => (
-                <Link key={c.id} href={`/campus/${c.id}`} className="flex items-center gap-3 group">
-                  <span className="text-xs text-gray-400 w-28 text-right shrink-0 truncate group-hover:text-gray-700 transition-colors">{c.nombre}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.round((c.semana_actual.total / maxTotal) * 100)}%`, backgroundColor: PAIS_COLOR[c.pais] ?? "var(--arm)" }} />
-                  </div>
-                  <span className="text-xs font-semibold text-gray-600 w-14 text-right tabular-nums shrink-0">{fmt(c.semana_actual.total)}</span>
-                </Link>
-              ))}
+          {/* Histórico total */}
+          <div className="card p-5">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Histórico total</p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500">Encuentros</span>
+                <span className="text-lg font-black">{fmt(globales.historico.encuentros)}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500">Asistentes</span>
+                <span className="text-lg font-black">{fmt(globales.historico.asistentes)}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-gray-500">PAJ</span>
+                <span className="text-lg font-black" style={{ color: "var(--teal)" }}>{fmt(globales.historico.paj)}</span>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Contador almas */}
-        <div className="card p-6 flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[160px]">
-          <div className="absolute inset-0 opacity-5" style={{ background: "radial-gradient(circle, var(--arm) 0%, transparent 70%)" }} />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 z-10">Contador de almas</p>
-          <p className="text-5xl font-black tracking-tight z-10" style={{ color: "var(--arm)" }}>{fmt(contador || globales.historico.paj)}</p>
-          <p className="text-xs text-gray-400 mt-2 z-10">Personas que aceptaron a Jesús · histórico</p>
-          <div className="absolute bottom-0 left-0 right-0 h-1 opacity-30" style={{ background: "var(--arm)" }} />
+          {/* Contador de almas */}
+          <div className="card p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
+            <div className="absolute inset-0 opacity-5" style={{ background: "radial-gradient(circle, var(--arm) 0%, transparent 70%)" }} />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 z-10">Contador de almas</p>
+            <p className="text-4xl font-black tracking-tight z-10" style={{ color: "var(--arm)" }}>{fmt(contador || globales.historico.paj)}</p>
+            <p className="text-[10px] text-gray-400 mt-1 z-10">Personas que aceptaron a Jesús</p>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Encuentros semana */}
+      {/* ═══════ ENCUENTROS SEMANA ═══════ */}
       <div className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700">Encuentros esta semana</h3>
