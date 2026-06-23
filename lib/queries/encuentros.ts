@@ -102,3 +102,35 @@ export async function getContadorAlmas(): Promise<number> {
   const { data } = await supabase.from("informes_semanales").select("contador_almas").order("semana_inicio", { ascending: false }).limit(1).maybeSingle();
   return (data as { contador_almas?: number } | null)?.contador_almas ?? 0;
 }
+
+export async function getEstadisticasGlobales(campusId?: string) {
+  const supabase = createClient();
+  const anioActual = new Date().getFullYear();
+
+  // Total histórico (todos los años)
+  let qAll = supabase.from("encuentros").select("total_general,acepto_jesus_presencial,online").in("estado", ["enviado", "validado"]);
+  if (campusId) qAll = qAll.eq("campus_id", campusId);
+
+  // Total año actual
+  let qYear = supabase.from("encuentros").select("total_general,acepto_jesus_presencial,online").in("estado", ["enviado", "validado"]).gte("fecha", `${anioActual}-01-01`).lte("fecha", `${anioActual}-12-31`);
+  if (campusId) qYear = qYear.eq("campus_id", campusId);
+
+  const [{ data: all }, { data: year }] = await Promise.all([qAll, qYear]);
+
+  const rowsAll = (all as ERow[]) ?? [];
+  const rowsYear = (year as ERow[]) ?? [];
+
+  return {
+    historico: {
+      encuentros: rowsAll.length,
+      asistentes: rowsAll.reduce((s, r) => s + (r.total_general ?? 0), 0),
+      paj: rowsAll.reduce((s, r) => s + (r.acepto_jesus_presencial ?? 0) + (r.online?.acepto_jesus ?? 0), 0),
+    },
+    anio_actual: {
+      anio: anioActual,
+      encuentros: rowsYear.length,
+      asistentes: rowsYear.reduce((s, r) => s + (r.total_general ?? 0), 0),
+      paj: rowsYear.reduce((s, r) => s + (r.acepto_jesus_presencial ?? 0) + (r.online?.acepto_jesus ?? 0), 0),
+    },
+  };
+}

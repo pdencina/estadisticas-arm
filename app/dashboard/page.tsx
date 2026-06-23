@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getDashboardKPIs, getEncuentrosSemanaActual, getEncuentrosPendientes, getContadorAlmas } from "@/lib/queries/encuentros";
+import { getDashboardKPIs, getEncuentrosSemanaActual, getEncuentrosPendientes, getContadorAlmas, getEstadisticasGlobales } from "@/lib/queries/encuentros";
 import { getCampusConEstadisticas } from "@/lib/queries/campus";
 import { getCurrentUser } from "@/lib/queries/users";
 import { fmt, fmtDelta, deltaColor, TIPO_LABELS, fmtFecha, PAIS_COLOR } from "@/lib/utils";
@@ -13,12 +13,13 @@ export default async function DashboardPage() {
   if (user?.rol === "voluntario") redirect("/nuevo-reporte");
   const cId = user?.rol === "admin_global" ? undefined : user?.campus_id ?? undefined;
 
-  const [kpis, encuentros, pendientes, campusList, contador] = await Promise.all([
+  const [kpis, encuentros, pendientes, campusList, contador, globales] = await Promise.all([
     getDashboardKPIs(cId),
     getEncuentrosSemanaActual(cId),
     getEncuentrosPendientes(cId),
     getCampusConEstadisticas(),
     getContadorAlmas(),
+    getEstadisticasGlobales(cId),
   ]);
 
   const { semana_actual: sa, diferencias: d } = kpis;
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
           { label: "Total asistentes",  val: sa.total_general,   delta: d.total_general,   color: "var(--arm)",  border: "border-l-blue-500" },
           { label: "En auditorio",       val: sa.total_auditorio, delta: d.total_auditorio, color: "var(--teal)", border: "border-l-emerald-500" },
           { label: "Aceptaron a Jesús",  val: sa.total_paj,       delta: d.total_paj,       color: "#D85A30",     border: "border-l-orange-500" },
-          { label: "Contador de almas",  val: contador || sa.total_paj, delta: null,        color: "var(--arm)",  border: "border-l-blue-500", accent: true },
+          { label: "Contador de almas",  val: globales.anio_actual.paj || contador || sa.total_paj, delta: null,        color: "var(--arm)",  border: "border-l-blue-500", accent: true },
         ].map((k, i) => (
           <div key={i} className={`kpi-card border-l-4 ${k.border} ${k.accent ? "ring-1 ring-blue-100" : ""}`}>
             <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{k.label}</p>
@@ -90,9 +91,47 @@ export default async function DashboardPage() {
         <div className="card p-6 flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[160px]">
           <div className="absolute inset-0 opacity-5" style={{ background: "radial-gradient(circle, var(--arm) 0%, transparent 70%)" }} />
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 z-10">Contador de almas</p>
-          <p className="text-5xl font-black tracking-tight z-10" style={{ color: "var(--arm)" }}>{fmt(contador || sa.total_paj)}</p>
-          <p className="text-xs text-gray-400 mt-2 z-10">Personas que aceptaron a Jesús · 2026</p>
+          <p className="text-5xl font-black tracking-tight z-10" style={{ color: "var(--arm)" }}>{fmt(globales.anio_actual.paj || contador || sa.total_paj)}</p>
+          <p className="text-xs text-gray-400 mt-2 z-10">Personas que aceptaron a Jesús · {globales.anio_actual.anio}</p>
           <div className="absolute bottom-0 left-0 right-0 h-1 opacity-30" style={{ background: "var(--arm)" }} />
+        </div>
+      </div>
+
+      {/* Estadísticas globales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="card p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Acumulado {globales.anio_actual.anio}</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Encuentros</p>
+              <p className="text-2xl font-black mt-1">{fmt(globales.anio_actual.encuentros)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Asistentes</p>
+              <p className="text-2xl font-black mt-1">{fmt(globales.anio_actual.asistentes)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Aceptaron a Jesús</p>
+              <p className="text-2xl font-black mt-1" style={{ color: "var(--teal)" }}>{fmt(globales.anio_actual.paj)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Histórico total</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Encuentros</p>
+              <p className="text-2xl font-black mt-1">{fmt(globales.historico.encuentros)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Asistentes</p>
+              <p className="text-2xl font-black mt-1">{fmt(globales.historico.asistentes)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Aceptaron a Jesús</p>
+              <p className="text-2xl font-black mt-1" style={{ color: "var(--teal)" }}>{fmt(globales.historico.paj)}</p>
+            </div>
+          </div>
         </div>
       </div>
 
