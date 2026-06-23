@@ -280,11 +280,13 @@ async function main() {
     const vol_proyecto_edu = getNumCF(task, "V. Proyecto educativo");
 
     // Total general
+    // Total general (incluye espectadores online para cuadrar con el informe semanal)
     let total_general = asistencia_auditorio + asistencia_kids + asistencia_tweens +
       asistencia_sala_bebe + asistencia_sala_sensorial +
       vol_servicio + vol_tecnica + vol_kids + vol_tweens + vol_worship +
       vol_cocina + vol_rrss + vol_seguridad + vol_sala_bebes + vol_conexion +
-      vol_oracion + vol_merch + vol_amor + vol_sala_sens + vol_info + vol_proyecto_edu;
+      vol_oracion + vol_merch + vol_amor + vol_sala_sens + vol_info + vol_proyecto_edu +
+      espectadores_max;
 
     // Si todo es 0 y no tiene datos, saltar
     if (total_general === 0 && acepto_jesus_presencial === 0 && acepto_jesus_online === 0) {
