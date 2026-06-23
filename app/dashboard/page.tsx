@@ -4,7 +4,7 @@ import { getDashboardKPIs, getEncuentrosSemanaActual, getEncuentrosPendientes, g
 import { getCampusConEstadisticas } from "@/lib/queries/campus";
 import { getCurrentUser } from "@/lib/queries/users";
 import { fmt, fmtDelta, deltaColor, TIPO_LABELS, fmtFecha, PAIS_COLOR } from "@/lib/utils";
-import { Users, Headphones, Heart, TrendingUp, Building2, PlusCircle, ArrowRight, AlertCircle } from "lucide-react";
+import { Building2, PlusCircle, ArrowRight, AlertCircle } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -45,19 +45,17 @@ export default async function DashboardPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total asistentes",  val: sa.total_general,   delta: d.total_general,   icon: Users,       color: "var(--arm)",  bg: "var(--arm-l)"  },
-          { label: "En auditorio",       val: sa.total_auditorio, delta: d.total_auditorio, icon: Headphones,  color: "var(--teal)", bg: "var(--teal-l)" },
-          { label: "Aceptaron a Jesús",  val: sa.total_paj,       delta: d.total_paj,       icon: Heart,       color: "#D85A30",     bg: "#FAECE7"       },
-          { label: "Contador de almas",  val: contador || sa.total_paj, delta: null,        icon: TrendingUp,  color: "var(--arm)",  bg: "var(--arm-l)", accent: true },
+          { label: "Total asistentes",  val: sa.total_general,   delta: d.total_general,   emoji: "👥", color: "var(--arm)",  border: "border-l-blue-500" },
+          { label: "En auditorio",       val: sa.total_auditorio, delta: d.total_auditorio, emoji: "🎧", color: "var(--teal)", border: "border-l-emerald-500" },
+          { label: "Aceptaron a Jesús",  val: sa.total_paj,       delta: d.total_paj,       emoji: "✝️", color: "#D85A30",     border: "border-l-orange-500" },
+          { label: "Contador de almas",  val: contador || sa.total_paj, delta: null,        emoji: "🔥", color: "var(--arm)",  border: "border-l-blue-500", accent: true },
         ].map((k, i) => (
-          <div key={i} className={`kpi-card ${k.accent ? "ring-1 ring-purple-200" : ""}`}>
-            <div className="flex items-start justify-between mb-3">
-              <p className="text-xs font-medium text-gray-400 leading-snug">{k.label}</p>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: k.bg }}>
-                <k.icon size={14} style={{ color: k.color }} />
-              </div>
+          <div key={i} className={`kpi-card border-l-4 ${k.border} ${k.accent ? "ring-1 ring-blue-100" : ""}`}>
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide leading-snug">{k.label}</p>
+              <span className="text-lg leading-none">{k.emoji}</span>
             </div>
-            <p className="text-2xl font-black tracking-tight" style={{ color: k.accent ? k.color : "inherit" }}>{fmt(k.val)}</p>
+            <p className="text-3xl font-black tracking-tight" style={{ color: k.accent ? k.color : "inherit" }}>{fmt(k.val)}</p>
             {k.delta !== null ? (
               <p className={`text-xs mt-1.5 ${deltaColor(k.delta)}`}>{fmtDelta(k.delta)} <span className="text-gray-400 font-normal">vs sem. anterior</span></p>
             ) : (
