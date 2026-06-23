@@ -2,9 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getEncuentroById } from "@/lib/queries/encuentros";
 import { getCurrentUser } from "@/lib/queries/users";
-import { validarEncuentro, aprobarEncuentro } from "@/lib/actions/encuentros";
+import { validarEncuentro, aprobarEncuentro, eliminarEncuentro } from "@/lib/actions/encuentros";
 import { fmt, fmtFecha, TIPO_LABELS, MODALIDAD_LABELS } from "@/lib/utils";
 import { ArrowLeft, CheckCircle, Clock, Shield, Send } from "lucide-react";
+import EliminarEncuentroBtn from "@/components/forms/EliminarEncuentroBtn";
 
 interface Props { params: { id: string } }
 
@@ -40,6 +41,12 @@ export default async function Page({ params }: Props) {
     "use server";
     await validarEncuentro(params.id);
     redirect(`/encuentros/${params.id}`);
+  }
+
+  async function eliminar() {
+    "use server";
+    await eliminarEncuentro(params.id);
+    redirect("/encuentros");
   }
 
   return (
@@ -128,8 +135,11 @@ export default async function Page({ params }: Props) {
       </div>
 
       {canEdit && (
-        <div className="flex justify-end pb-8">
-          <Link href={`/nuevo-reporte?edit=${params.id}`} className="btn-secondary">Editar reporte</Link>
+        <div className="flex justify-between items-center pb-8">
+          {user?.rol === "admin_global" && (
+            <EliminarEncuentroBtn action={eliminar} />
+          )}
+          <Link href={`/nuevo-reporte?edit=${params.id}`} className="btn-secondary ml-auto">Editar reporte</Link>
         </div>
       )}
     </div>
