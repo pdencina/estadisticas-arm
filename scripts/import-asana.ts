@@ -30,9 +30,9 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURACIÓN — Ajustar según necesidad
 // ═══════════════════════════════════════════════════════════════
-const SOLO_REGISTRADO = true;      // true = solo "Registrado", false = importa todo
+const SOLO_REGISTRADO = false;      // true = solo "Registrado", false = importa todo
 const DESDE_FECHA: string | null = null;  // "2020-01-01" o null para toda la historia
-const DRY_RUN = true;              // true = preview sin insertar
+const DRY_RUN = false;              // true = preview sin insertar
 const CSV_FILE = path.resolve(__dirname, "asana-export.csv");
 const BATCH_SIZE = 50;             // registros por lote de inserción
 
