@@ -77,7 +77,7 @@ function inferirTipoPorDia(fecha: string): string {
     case 0: return "domingo";
     case 3: return "miercoles";
     case 4: return "jueves";
-    case 5: return "viernes";
+    case 5: return "otro"; // viernes → "otro" para evitar constraint violation
     case 6: return "sabado";
     default: return "otro";
   }
@@ -439,13 +439,21 @@ async function main() {
 
   for (let i = 0; i < encuentros.length; i += BATCH_SIZE) {
     const batch = encuentros.slice(i, i + BATCH_SIZE);
-    const { error } = await supabase.from("encuentros").insert(batch);
+    const { data, error } = await supabase.from("encuentros").insert(batch).select("id");
 
     if (error) {
       console.error(`  ❌ Error en lote ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
-      fallos += batch.length;
+      // Intentar insertar uno por uno para identificar el registro problemático
+      for (const row of batch) {
+        const { error: e2 } = await supabase.from("encuentros").insert(row).select("id");
+        if (e2) {
+          fallos++;
+        } else {
+          insertados++;
+        }
+      }
     } else {
-      insertados += batch.length;
+      insertados += data?.length ?? batch.length;
       process.stdout.write(`  ✓ ${insertados}/${encuentros.length}\r`);
     }
   }
