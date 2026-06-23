@@ -12,7 +12,7 @@ export function fmt(n: number) {
 }
 
 export function fmtFecha(fecha: string) {
-  return format(parseISO(fecha), "dd MMM yyyy", { locale: es });
+  return format(parseISO(fecha), "dd-MM-yyyy", { locale: es });
 }
 
 export function fmtDelta(n: number) {

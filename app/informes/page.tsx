@@ -24,8 +24,8 @@ export default async function InformesPage() {
       </div>
       <div className="space-y-4">
         {informes.map(inf => {
-          const ini = format(parseISO(inf.semana_inicio), "dd MMM", { locale: es });
-          const fin = format(parseISO(inf.semana_fin), "dd MMM yyyy", { locale: es });
+          const ini = format(parseISO(inf.semana_inicio), "dd-MM-yyyy", { locale: es });
+          const fin = format(parseISO(inf.semana_fin), "dd-MM-yyyy", { locale: es });
           return (
             <div key={inf.id} className="card overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">

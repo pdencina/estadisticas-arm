@@ -299,7 +299,7 @@ export function RecordsCard({ records }: { records: Records }) {
             <div>
               <p className="text-2xl font-black">{fmt(r.valor)}</p>
               <p className="text-[10px] text-gray-500 mt-0.5">{r.label}</p>
-              <p className="text-[9px] text-gray-400 mt-0.5">{r.campus} · {r.fecha}</p>
+              <p className="text-[9px] text-gray-400 mt-0.5">{r.campus} · {r.fecha.split("-").reverse().join("-")}</p>
             </div>
           </div>
         ))}

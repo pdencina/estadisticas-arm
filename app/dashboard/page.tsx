@@ -35,6 +35,7 @@ export default async function DashboardPage() {
   const hoy = new Date();
   const fechaHoy = format(hoy, "EEEE d 'de' MMMM, yyyy", { locale: es });
   const { lA, dA } = semanaActual();
+  const fmtSemana = (iso: string) => iso.split("-").reverse().join("-");
 
   return (
     <div className="page space-y-6">
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
       <section>
         <div className="flex items-center gap-2 mb-3">
           <h2 className="text-sm font-semibold text-gray-700">Semana actual</h2>
-          <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{lA} al {dA}</span>
+          <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{fmtSemana(lA)} al {fmtSemana(dA)}</span>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
