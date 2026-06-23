@@ -288,8 +288,10 @@ async function main() {
       vol_oracion + vol_merch + vol_amor + vol_sala_sens + vol_info + vol_proyecto_edu +
       espectadores_max;
 
-    // Si todo es 0 y no tiene datos, saltar
-    if (total_general === 0 && acepto_jesus_presencial === 0 && acepto_jesus_online === 0) {
+    // Solo saltar si Estado Registro = "Sin Iniciar" y no tiene datos
+    // (estos son encuentros futuros aún vacíos)
+    const esVacio = total_general === 0 && acepto_jesus_presencial === 0 && acepto_jesus_online === 0;
+    if (esVacio && estadoReg && estadoReg.toLowerCase().includes("sin iniciar")) {
       saltadas++;
       continue;
     }

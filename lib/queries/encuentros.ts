@@ -18,10 +18,21 @@ function sumarKPIs(rows: ERow[] | null) {
 
 export async function getEncuentros(campusId?: string): Promise<Encuentro[]> {
   const supabase = createClient();
-  let q = supabase.from("encuentros").select(SEL).order("fecha", { ascending: false }).order("horario", { ascending: true });
-  if (campusId) q = q.eq("campus_id", campusId);
-  const { data } = await q;
-  return (data as Encuentro[]) ?? [];
+  const PAGE = 1000;
+  const all: Encuentro[] = [];
+  let offset = 0;
+
+  while (true) {
+    let q = supabase.from("encuentros").select(SEL).order("fecha", { ascending: false }).order("horario", { ascending: true }).range(offset, offset + PAGE - 1);
+    if (campusId) q = q.eq("campus_id", campusId);
+    const { data } = await q;
+    if (!data || data.length === 0) break;
+    all.push(...(data as Encuentro[]));
+    if (data.length < PAGE) break;
+    offset += PAGE;
+  }
+
+  return all;
 }
 
 export async function getEncuentroById(id: string): Promise<Encuentro | null> {
@@ -106,19 +117,58 @@ export async function getContadorAlmas(): Promise<number> {
 export async function getEstadisticasGlobales(campusId?: string) {
   const supabase = createClient();
   const anioActual = new Date().getFullYear();
+  const PAGE = 1000;
 
-  // Total histórico (todos los años)
-  let qAll = supabase.from("encuentros").select("total_general,acepto_jesus_presencial,online").in("estado", ["enviado", "validado"]);
-  if (campusId) qAll = qAll.eq("campus_id", campusId);
+  // Helper: fetch all pages of a query
+  async function fetchAll(buildQuery: () => any): Promise<ERow[]> {
+    const all: ERow[] = [];
+    let offset = 0;
+    while (true) {
+      const { data } = await buildQuery().range(offset, offset + PAGE - 1);
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < PAGE) break;
+      offset += PAGE;
+    }
+    return all;
+  }
+
+  // Total histórico (todos los años) — paginar para superar límite de 1000
+  const buildAll = () => {
+    let q = supabase.from("encuentros").select("total_general,acepto_jesus_presencial,online").in("estado", ["enviado", "validado"]);
+    if (campusId) q = q.eq("campus_id", campusId);
+    return q;
+  };
 
   // Total año actual
-  let qYear = supabase.from("encuentros").select("total_general,acepto_jesus_presencial,online").in("estado", ["enviado", "validado"]).gte("fecha", `${anioActual}-01-01`).lte("fecha", `${anioActual}-12-31`);
-  if (campusId) qYear = qYear.eq("campus_id", campusId);
+  const buildYear = () => {
+    let q = supabase.from("encuentros").select("total_general,acepto_jesus_presencial,online").in("estado", ["enviado", "validado"]).gte("fecha", `${anioActual}-01-01`).lte("fecha", `${anioActual}-12-31`);
+    if (campusId) q = q.eq("campus_id", campusId);
+    return q;
+  };
 
-  const [{ data: all }, { data: year }] = await Promise.all([qAll, qYear]);
+  // Histórico por campus (para desglose)
+  const buildAllWithCampus = () => {
+    let q = supabase.from("encuentros").select("campus_id,total_general,acepto_jesus_presencial,online").in("estado", ["enviado", "validado"]);
+    if (campusId) q = q.eq("campus_id", campusId);
+    return q;
+  };
 
-  const rowsAll = (all as ERow[]) ?? [];
-  const rowsYear = (year as ERow[]) ?? [];
+  const [rowsAll, rowsYear, rowsAllCampus] = await Promise.all([
+    fetchAll(buildAll),
+    fetchAll(buildYear),
+    campusId ? Promise.resolve([]) : fetchAll(buildAllWithCampus),
+  ]);
+
+  // Agrupar por campus
+  const porCampus: Record<string, { encuentros: number; asistentes: number; paj: number }> = {};
+  for (const r of rowsAllCampus as any[]) {
+    const cid = r.campus_id;
+    if (!porCampus[cid]) porCampus[cid] = { encuentros: 0, asistentes: 0, paj: 0 };
+    porCampus[cid].encuentros++;
+    porCampus[cid].asistentes += r.total_general ?? 0;
+    porCampus[cid].paj += (r.acepto_jesus_presencial ?? 0) + (r.online?.acepto_jesus ?? 0);
+  }
 
   return {
     historico: {
@@ -132,5 +182,6 @@ export async function getEstadisticasGlobales(campusId?: string) {
       asistentes: rowsYear.reduce((s, r) => s + (r.total_general ?? 0), 0),
       paj: rowsYear.reduce((s, r) => s + (r.acepto_jesus_presencial ?? 0) + (r.online?.acepto_jesus ?? 0), 0),
     },
+    por_campus: porCampus,
   };
 }

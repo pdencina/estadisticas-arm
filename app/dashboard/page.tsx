@@ -151,6 +151,47 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      {/* ═══════ HISTÓRICO POR CAMPUS ═══════ */}
+      {user?.rol === "admin_global" && Object.keys(globales.por_campus).length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-700">Encuentros por campus — histórico total</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Campus</th>
+                  <th className="text-right">Encuentros</th>
+                  <th className="text-right">Asistentes</th>
+                  <th className="text-right">PAJ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {campusList.map(c => {
+                  const stats = globales.por_campus[c.id];
+                  if (!stats) return null;
+                  return (
+                    <tr key={c.id}>
+                      <td><span className="font-semibold">{c.nombre}</span><span className="text-xs text-gray-400 ml-1">{c.pais}</span></td>
+                      <td className="text-right font-bold tabular-nums">{fmt(stats.encuentros)}</td>
+                      <td className="text-right tabular-nums text-gray-500">{fmt(stats.asistentes)}</td>
+                      <td className="text-right font-black tabular-nums" style={{ color: "var(--teal)" }}>{fmt(stats.paj)}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="border-t-2 border-gray-200 font-bold">
+                  <td>Total global</td>
+                  <td className="text-right tabular-nums">{fmt(globales.historico.encuentros)}</td>
+                  <td className="text-right tabular-nums text-gray-500">{fmt(globales.historico.asistentes)}</td>
+                  <td className="text-right tabular-nums" style={{ color: "var(--teal)" }}>{fmt(globales.historico.paj)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ═══════ ENCUENTROS SEMANA ═══════ */}
       <div className="card overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
