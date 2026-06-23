@@ -40,61 +40,66 @@ const BATCH_SIZE = 50;             // registros por lote de inserción
 // MAPEO DE CAMPUS (nombre en CSV → nombre en BD)
 // ═══════════════════════════════════════════════════════════════
 const CAMPUS_MAP: Record<string, string> = {
-  "Santiago":       "Stgo Centro",
-  "Stgo Centro":   "Stgo Centro",
-  "Puente Alto":   "Puente Alto",
-  "Punta Arenas":  "Punta Arenas",
-  "Concepción":    "Concepción",
-  "Concepcion":    "Concepción",
-  "Montevideo":    "Montevideo",
-  "Maracaibo":     "Maracaibo",
-  "Katy Texas":    "Katy Texas",
-  "Katy":          "Katy Texas",
-  "La Plata":      "La Plata",
+  "Santiago":        "Stgo Centro",
+  "Stgo Centro":    "Stgo Centro",
+  "Santiago Centro": "Stgo Centro",
+  "Puente Alto":    "Puente Alto",
+  "Punta Arenas":   "Punta Arenas",
+  "Concepción":     "Concepción",
+  "Concepcion":     "Concepción",
+  "Montevideo":     "Montevideo",
+  "Maracaibo":      "Maracaibo",
+  "Katy Texas":     "Katy Texas",
+  "Katy":           "Katy Texas",
+  "La Plata":       "La Plata",
+  "Miami":          "",      // Saltar — campus ya no activo
+  "Oriente":        "",      // Saltar — campus ya no activo
+  "Otro":           "",      // Saltar — sin campus definido
 };
 
 // ═══════════════════════════════════════════════════════════════
-// MAPEO DE TIPO DE ENCUENTRO (valor en CSV → valor en BD)
+// MAPEO DE TIPO DE ENCUENTRO
+// En Asana, "Tipo de Encuentro" en realidad indica modalidad.
+// El tipo real (domingo, miércoles, etc.) se infiere del día de la semana de la fecha.
+// Excepciones: "Junta" y "Oración" son tipos específicos.
 // ═══════════════════════════════════════════════════════════════
-const TIPO_MAP: Record<string, string> = {
-  "Domingo":              "domingo",
-  "domingo":              "domingo",
-  "Miércoles":            "miercoles",
-  "Miercoles":            "miercoles",
-  "miércoles":            "miercoles",
-  "miercoles":            "miercoles",
-  "Miércoles Global":     "miercoles",
-  "Jueves":               "jueves",
-  "jueves":               "jueves",
-  "Sábado":               "sabado",
-  "Sabado":               "sabado",
-  "sábado":               "sabado",
-  "sabado":               "sabado",
-  "Prayer Room":          "prayer_room",
-  "prayer room":          "prayer_room",
-  "Encuentro Mujeres":    "encuentro_mujeres",
-  "Encuentro Jóvenes":    "encuentro_jovenes",
-  "Encuentro Jovenes":    "encuentro_jovenes",
-  "Encuentro Hombres":    "encuentro_hombres",
-  "Encuentro Global":     "miercoles",
-  "encuentro_global":     "miercoles",
-  "Otro":                 "otro",
+const TIPO_ESPECIAL_MAP: Record<string, string> = {
+  "Junta":    "otro",
+  "Oración":  "prayer_room",
+  "Oracion":  "prayer_room",
 };
+
+// Inferir tipo por día de la semana
+function inferirTipoPorDia(fecha: string): string {
+  const d = new Date(fecha + "T12:00:00");
+  const dia = d.getDay(); // 0=dom, 1=lun, 2=mar, 3=mie, 4=jue, 5=vie, 6=sab
+  switch (dia) {
+    case 0: return "domingo";
+    case 3: return "miercoles";
+    case 4: return "jueves";
+    case 5: return "viernes";
+    case 6: return "sabado";
+    default: return "otro";
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MAPEO DE MODALIDAD (valor en CSV → valor en BD)
 // ═══════════════════════════════════════════════════════════════
 const MODALIDAD_MAP: Record<string, string> = {
-  "Presencial":          "presencial",
-  "presencial":          "presencial",
-  "Online":              "online",
-  "online":              "online",
-  "Híbrido":             "hibrido",
-  "Hibrido":             "hibrido",
-  "híbrido":             "hibrido",
-  "hibrido":             "hibrido",
-  "Presencial+Online":   "hibrido",
-  "presencial+online":   "hibrido",
+  "Presencial":                "presencial",
+  "presencial":                "presencial",
+  "Online":                    "online",
+  "online":                    "online",
+  "Híbrido":                   "hibrido",
+  "Hibrido":                   "hibrido",
+  "híbrido":                   "hibrido",
+  "hibrido":                   "hibrido",
+  "Presencial+Online":         "hibrido",
+  "presencial+online":         "hibrido",
+  "Encuentro Presencial+Online": "hibrido",
+  "Encuentro Presencial":      "presencial",
+  "Encuentro Online":          "online",
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -213,6 +218,17 @@ async function main() {
     console.log("");
   }
 
+  // Debug: valores únicos de "Tipo de Encuentro" y "Section/Column"
+  const tipoVals = new Set<string>();
+  const sectionVals = new Set<string>();
+  for (const r of records) {
+    if (r["Tipo de Encuentro"]) tipoVals.add(r["Tipo de Encuentro"]);
+    if (r["Section/Column"]) sectionVals.add(r["Section/Column"]);
+  }
+  console.log("📋 Valores únicos 'Tipo de Encuentro':", [...tipoVals].join(", ") || "(vacío)");
+  console.log("📋 Valores únicos 'Section/Column':", [...sectionVals].join(", ") || "(vacío)");
+  console.log("");
+
   // Procesar filas
   const encuentros: any[] = [];
   const errores: string[] = [];
@@ -254,7 +270,14 @@ async function main() {
       continue;
     }
 
-    const campusNombre = CAMPUS_MAP[campusCSV] || campusCSV;
+    const campusNombre = CAMPUS_MAP[campusCSV] !== undefined ? CAMPUS_MAP[campusCSV] : campusCSV;
+    
+    // Saltar si el campus está mapeado a vacío (ej: Miami — ya no activo)
+    if (campusNombre === "") {
+      saltadas++;
+      continue;
+    }
+
     const campusId = campusLookup[campusNombre.toLowerCase()];
     if (!campusId) {
       errores.push(`Línea ${lineNum}: Campus no encontrado: "${campusCSV}" → "${campusNombre}"`);
@@ -262,12 +285,17 @@ async function main() {
       continue;
     }
 
-    // Tipo de encuentro
-    const tipoCSV = row["Tipo de Encuentro"] || row["Tipo"] || row["tipo"] || "";
-    const tipo = TIPO_MAP[tipoCSV] || TIPO_MAP[tipoCSV.trim()] || "otro";
+    // Tipo de encuentro — inferir del día o de campos especiales
+    const tipoCSV = row["Tipo de Encuentro"] || "";
+    let tipo: string;
+    if (TIPO_ESPECIAL_MAP[tipoCSV] || TIPO_ESPECIAL_MAP[tipoCSV.trim()]) {
+      tipo = TIPO_ESPECIAL_MAP[tipoCSV] || TIPO_ESPECIAL_MAP[tipoCSV.trim()];
+    } else {
+      tipo = inferirTipoPorDia(fecha);
+    }
 
-    // Modalidad
-    const modalCSV = row["Modalidad"] || row["modalidad"] || "Presencial";
+    // Modalidad — usar "Tipo de Encuentro" de Asana (que realmente indica modalidad) o "Modalidad"
+    const modalCSV = row["Modalidad"] || row["Tipo de Encuentro"] || "Presencial";
     const modalidad = MODALIDAD_MAP[modalCSV] || MODALIDAD_MAP[modalCSV.trim()] || "presencial";
 
     // Horario (extraer del nombre de la tarea o campo dedicado)
@@ -301,11 +329,13 @@ async function main() {
     const vol_conexion = safeInt(row["V.Conexión"] || row["V. Conexión"] || row["V.Conexion"] || row["V. Conexion"] || row["Conexión"]);
     const vol_oracion = safeInt(row["V. Oración"] || row["V. Oracion"] || row["Oración"]);
     const vol_merch = safeInt(row["V. Merch"] || row["Merch"]);
-    const vol_amor = safeInt(row["V. Amor por la Casa"] || row["Amor por la Casa"]);
+    const vol_amor = safeInt(row["V. Amor x la casa"] || row["V. Amor por la Casa"] || row["Amor por la Casa"]);
     // "V.Sensorial" sin espacio en el CSV real
     const vol_sala_sens = safeInt(row["V.Sensorial"] || row["V. Sala Sensorial"] || row["V. Sensorial"]);
     const vol_punto_siembra = safeInt(row["V. Punto Siembra"] || row["Punto Siembra"]);
     const vol_cambios = safeInt(row["V. Cambios"] || row["Cambios Voluntarios"]);
+    const vol_info = safeInt(row["V. Info"]);
+    const vol_proyecto_edu = safeInt(row["V. Proyecto educativo"]);
 
     // Total general
     let total_general = safeInt(row["Total General"] || row["total_general"]);
@@ -354,6 +384,8 @@ async function main() {
         sala_sensorial: vol_sala_sens,
         punto_siembra: vol_punto_siembra,
         cambios: vol_cambios,
+        info: vol_info,
+        proyecto_educativo: vol_proyecto_edu,
       },
       online: {
         acepto_jesus: acepto_jesus_online,
@@ -363,8 +395,14 @@ async function main() {
     });
   }
 
+  // Resumen de tipos detectados
+  const tipoCount: Record<string, number> = {};
+  encuentros.forEach(e => { tipoCount[e.tipo] = (tipoCount[e.tipo] || 0) + 1; });
+  console.log("\n📊 Distribución de tipos:");
+  Object.entries(tipoCount).sort((a, b) => b[1] - a[1]).forEach(([t, c]) => console.log(`   ${t}: ${c}`));
+
   // Resumen
-  console.log("═══════════════════════════════════════════════════");
+  console.log("\n═══════════════════════════════════════════════════");
   console.log(`  Encuentros a importar: ${encuentros.length}`);
   console.log(`  Filas saltadas:        ${saltadas}`);
   console.log(`  Errores:               ${errores.length}`);
