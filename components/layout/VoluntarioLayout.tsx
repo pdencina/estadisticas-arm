@@ -21,7 +21,7 @@ export default function VoluntarioLayout({ user, children }: { user: UserProfile
       <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ background: "var(--arm)" }}>AR</div>
         <div className="flex-1">
-          <p className="text-sm font-bold text-gray-900 leading-tight">ARM Stats</p>
+          <p className="text-sm font-bold text-gray-900 leading-tight">ARM Estadísticas</p>
           <p className="text-[10px] text-gray-400">{user.campus?.nombre ?? "Sin campus"}</p>
         </div>
         <form action={signOut}>

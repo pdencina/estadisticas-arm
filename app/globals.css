@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --arm:        #7F77DD;
-  --arm-l:      #EEEDFE;
-  --arm-d:      #3C3489;
+  --arm:        #1D4ED8;
+  --arm-l:      #EFF6FF;
+  --arm-d:      #1E3A8A;
   --teal:       #1D9E75;
   --teal-l:     #E1F5EE;
   --coral:      #D85A30;

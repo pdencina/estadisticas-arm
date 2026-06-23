@@ -16,7 +16,7 @@ const TITLES: Record<string, string> = {
 
 export default function Topbar() {
   const path = usePathname();
-  const title = Object.entries(TITLES).find(([k]) => k === "/dashboard" ? path === k : path.startsWith(k))?.[1] ?? "ARM Stats";
+  const title = Object.entries(TITLES).find(([k]) => k === "/dashboard" ? path === k : path.startsWith(k))?.[1] ?? "ARM Estadísticas";
   const semana = format(new Date(), "'Semana' w · MMMM yyyy", { locale: es });
 
   return (
