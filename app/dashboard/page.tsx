@@ -37,6 +37,10 @@ export default async function DashboardPage() {
   const { lA, dA } = semanaActual();
   const fmtSemana = (iso: string) => iso.split("-").reverse().join("-");
 
+  // Determinar si estamos en una semana incompleta (antes del domingo)
+  const hoyDia = hoy.getDay(); // 0=dom, 1=lun...6=sab
+  const semanaIncompleta = hoyDia !== 0; // si no es domingo, la semana está en curso
+
   return (
     <div className="page space-y-6">
 
@@ -73,7 +77,11 @@ export default async function DashboardPage() {
             <div key={i} className={`kpi-card border-l-4 ${k.border}`}>
               <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{k.label}</p>
               <p className="text-3xl font-black tracking-tight">{fmt(k.val)}</p>
-              <p className={`text-xs mt-1.5 ${deltaColor(k.delta)}`}>{fmtDelta(k.delta)} <span className="text-gray-400 font-normal">vs sem. anterior</span></p>
+              {semanaIncompleta ? (
+                <p className="text-xs mt-1.5 text-gray-400">Semana en curso</p>
+              ) : (
+                <p className={`text-xs mt-1.5 ${deltaColor(k.delta)}`}>{fmtDelta(k.delta)} <span className="text-gray-400 font-normal">vs sem. anterior</span></p>
+              )}
             </div>
           ))}
         </div>
