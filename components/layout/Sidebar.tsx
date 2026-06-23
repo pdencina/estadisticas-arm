@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, PlusCircle, Building2, FileText, Users, LogOut, ChevronRight, Star, Menu, X } from "lucide-react";
+import { LayoutDashboard, Calendar, PlusCircle, Building2, FileText, Users, LogOut, ChevronRight, Star, Menu, X, TrendingUp } from "lucide-react";
 import { cn, ROL_LABELS, initials } from "@/lib/utils";
 import { signOut } from "@/lib/actions/auth";
 import type { UserProfile } from "@/types";
@@ -14,9 +14,10 @@ const NAV = [
     { href: "/nuevo-reporte", icon: PlusCircle,      label: "Nuevo reporte" },
   ]},
   { sec: "Análisis", items: [
-    { href: "/campus",   icon: Building2, label: "Por campus"        },
-    { href: "/informes", icon: FileText,  label: "Informes semanales" },
-    { href: "/pastor",   icon: Star,      label: "Vista Pastor", adminOnly: true },
+    { href: "/campus",    icon: Building2,  label: "Por campus"         },
+    { href: "/ejecutivo", icon: TrendingUp, label: "Vista ejecutiva", adminOnly: true },
+    { href: "/informes",  icon: FileText,   label: "Informes semanales" },
+    { href: "/pastor",    icon: Star,       label: "Vista Pastor", adminOnly: true },
   ]},
   { sec: "Admin", items: [
     { href: "/usuarios", icon: Users, label: "Usuarios y roles", adminOnly: true },
