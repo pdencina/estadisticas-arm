@@ -45,16 +45,13 @@ export default async function DashboardPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total asistentes",  val: sa.total_general,   delta: d.total_general,   emoji: "👥", color: "var(--arm)",  border: "border-l-blue-500" },
-          { label: "En auditorio",       val: sa.total_auditorio, delta: d.total_auditorio, emoji: "🎧", color: "var(--teal)", border: "border-l-emerald-500" },
-          { label: "Aceptaron a Jesús",  val: sa.total_paj,       delta: d.total_paj,       emoji: "✝️", color: "#D85A30",     border: "border-l-orange-500" },
-          { label: "Contador de almas",  val: contador || sa.total_paj, delta: null,        emoji: "🔥", color: "var(--arm)",  border: "border-l-blue-500", accent: true },
+          { label: "Total asistentes",  val: sa.total_general,   delta: d.total_general,   color: "var(--arm)",  border: "border-l-blue-500" },
+          { label: "En auditorio",       val: sa.total_auditorio, delta: d.total_auditorio, color: "var(--teal)", border: "border-l-emerald-500" },
+          { label: "Aceptaron a Jesús",  val: sa.total_paj,       delta: d.total_paj,       color: "#D85A30",     border: "border-l-orange-500" },
+          { label: "Contador de almas",  val: contador || sa.total_paj, delta: null,        color: "var(--arm)",  border: "border-l-blue-500", accent: true },
         ].map((k, i) => (
           <div key={i} className={`kpi-card border-l-4 ${k.border} ${k.accent ? "ring-1 ring-blue-100" : ""}`}>
-            <div className="flex items-start justify-between mb-2">
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide leading-snug">{k.label}</p>
-              <span className="text-lg leading-none">{k.emoji}</span>
-            </div>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{k.label}</p>
             <p className="text-3xl font-black tracking-tight" style={{ color: k.accent ? k.color : "inherit" }}>{fmt(k.val)}</p>
             {k.delta !== null ? (
               <p className={`text-xs mt-1.5 ${deltaColor(k.delta)}`}>{fmtDelta(k.delta)} <span className="text-gray-400 font-normal">vs sem. anterior</span></p>
