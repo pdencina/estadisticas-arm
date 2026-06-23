@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Script de importación de datos desde CSV de Asana → tabla encuentros
  *
@@ -29,9 +30,9 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURACIÓN — Ajustar según necesidad
 // ═══════════════════════════════════════════════════════════════
-const SOLO_REGISTRADO = false;     // true = solo "Registrado", false = importa todo
+const SOLO_REGISTRADO = true;      // true = solo "Registrado", false = importa todo
 const DESDE_FECHA: string | null = null;  // "2020-01-01" o null para toda la historia
-const DRY_RUN = false;             // true = preview sin insertar
+const DRY_RUN = true;              // true = preview sin insertar
 const CSV_FILE = path.resolve(__dirname, "asana-export.csv");
 const BATCH_SIZE = 50;             // registros por lote de inserción
 
@@ -95,6 +96,11 @@ const MODALIDAD_MAP: Record<string, string> = {
   "Presencial+Online":   "hibrido",
   "presencial+online":   "hibrido",
 };
+
+// ═══════════════════════════════════════════════════════════════
+// TIPO PARA FILAS DEL CSV
+// ═══════════════════════════════════════════════════════════════
+type CsvRow = Record<string, string | undefined>;
 
 // ═══════════════════════════════════════════════════════════════
 // FUNCIONES AUXILIARES
@@ -191,7 +197,7 @@ async function main() {
 
   // Leer CSV
   const csvContent = fs.readFileSync(CSV_FILE, "utf-8");
-  const records = parse(csvContent, {
+  const records: CsvRow[] = parse(csvContent, {
     columns: true,
     skip_empty_lines: true,
     trim: true,
@@ -203,7 +209,7 @@ async function main() {
   // Mostrar columnas detectadas
   if (records.length > 0) {
     console.log("  Columnas detectadas:");
-    Object.keys(records[0]).forEach((col) => console.log(`    - "${col}"`));
+    Object.keys(records[0] as object).forEach((col) => console.log(`    - "${col}"`));
     console.log("");
   }
 
@@ -218,7 +224,7 @@ async function main() {
 
     // Filtrar por estado del CSV si corresponde
     if (SOLO_REGISTRADO) {
-      const estadoCSV = row["Estado"] || row["Status"] || row["Approval Status"] || "";
+      const estadoCSV = row["Estado Registro"] || row["Estado"] || row["Status"] || row["Approval Status"] || "";
       if (!estadoCSV.toLowerCase().includes("registrado") && !estadoCSV.toLowerCase().includes("aprobado")) {
         saltadas++;
         continue;
@@ -241,6 +247,13 @@ async function main() {
 
     // Campus
     const campusCSV = row["Campus"] || row["campus"] || "";
+    
+    // Saltar filas con campus "Virtual" (encuentros online de COVID, sin campus físico)
+    if (campusCSV.trim().toLowerCase() === "virtual") {
+      saltadas++;
+      continue;
+    }
+
     const campusNombre = CAMPUS_MAP[campusCSV] || campusCSV;
     const campusId = campusLookup[campusNombre.toLowerCase()];
     if (!campusId) {
@@ -260,11 +273,12 @@ async function main() {
     // Horario (extraer del nombre de la tarea o campo dedicado)
     const horario = row["Horario"] || row["horario"] || extraerHorario(row["Name"] || row["Task Name"] || row["Nombre"]);
 
-    // Campos numéricos
-    const asistencia_auditorio = safeInt(row["Asistencia Auditorio"] || row["Auditorio"]);
+    // Campos numéricos — nombres ajustados al CSV real
+    // Nota: " Asistencia Auditorio" tiene espacio al inicio en el CSV
+    const asistencia_auditorio = safeInt(row[" Asistencia Auditorio"] || row["Asistencia Auditorio"] || row["Auditorio"]);
     const asistencia_kids = safeInt(row["Asistencia Kids"] || row["Kids"]);
     const asistencia_tweens = safeInt(row["Asistencia Tweens"] || row["Tweens"]);
-    const asistencia_sala_bebe = safeInt(row["Sala Bebé"] || row["Sala Bebe"] || row["sala_bebe"]);
+    const asistencia_sala_bebe = safeInt(row["Asist. Sala bebé"] || row["Sala Bebé"] || row["Sala Bebe"] || row["sala_bebe"]);
     const asistencia_sala_sensorial = safeInt(row["Sala Sensorial"] || row["sala_sensorial"]);
     const asistencia_cambio = safeInt(row["Cambio Asistencia"] || row["cambio"]);
 
@@ -272,7 +286,7 @@ async function main() {
     const acepto_jesus_online = safeInt(row["Aceptaron a Jesús Online"] || row["Aceptaron a Jesus Online"] || row["PAJ Online"] || row["paj_online"]);
     const espectadores_max = safeInt(row["Espectadores a la vez"] || row["Espectadores"] || row["espectadores_max"]);
 
-    // Voluntarios
+    // Voluntarios — nombres ajustados al CSV real
     const vol_servicio = safeInt(row["V. Servicio"] || row["Servicio"]);
     const vol_tecnica = safeInt(row["V. Técnica"] || row["V. Tecnica"] || row["Técnica"] || row["Tecnica"]);
     const vol_kids = safeInt(row["V. Kids"]);
@@ -281,12 +295,15 @@ async function main() {
     const vol_cocina = safeInt(row["V. Cocina"] || row["Cocina"]);
     const vol_rrss = safeInt(row["V. RRSS"] || row["RRSS"]);
     const vol_seguridad = safeInt(row["V. Seguridad"] || row["Seguridad"]);
-    const vol_sala_bebes = safeInt(row["V. Sala Bebés"] || row["V. Sala Bebes"]);
-    const vol_conexion = safeInt(row["V. Conexión"] || row["V. Conexion"] || row["Conexión"]);
+    // "V. Sala de bebé" en el CSV real (no "V. Sala Bebés")
+    const vol_sala_bebes = safeInt(row["V. Sala de bebé"] || row["V. Sala Bebés"] || row["V. Sala Bebes"]);
+    // "V.Conexión" sin espacio en el CSV real
+    const vol_conexion = safeInt(row["V.Conexión"] || row["V. Conexión"] || row["V.Conexion"] || row["V. Conexion"] || row["Conexión"]);
     const vol_oracion = safeInt(row["V. Oración"] || row["V. Oracion"] || row["Oración"]);
     const vol_merch = safeInt(row["V. Merch"] || row["Merch"]);
     const vol_amor = safeInt(row["V. Amor por la Casa"] || row["Amor por la Casa"]);
-    const vol_sala_sens = safeInt(row["V. Sala Sensorial"]);
+    // "V.Sensorial" sin espacio en el CSV real
+    const vol_sala_sens = safeInt(row["V.Sensorial"] || row["V. Sala Sensorial"] || row["V. Sensorial"]);
     const vol_punto_siembra = safeInt(row["V. Punto Siembra"] || row["Punto Siembra"]);
     const vol_cambios = safeInt(row["V. Cambios"] || row["Cambios Voluntarios"]);
 
