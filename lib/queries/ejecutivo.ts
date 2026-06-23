@@ -9,6 +9,7 @@ type RawRow = {
   asistencia: { auditorio?: number } | null;
   online: { acepto_jesus?: number; espectadores_max?: number } | null;
   voluntarios: Record<string, number> | null;
+  predicador: string | null;
 };
 
 async function fetchAllEncuentros(campusId?: string): Promise<RawRow[]> {
@@ -20,7 +21,7 @@ async function fetchAllEncuentros(campusId?: string): Promise<RawRow[]> {
   while (true) {
     let q = supabase
       .from("encuentros")
-      .select("campus_id,fecha,tipo,total_general,acepto_jesus_presencial,asistencia,online,voluntarios")
+      .select("campus_id,fecha,tipo,total_general,acepto_jesus_presencial,asistencia,online,voluntarios,predicador")
       .in("estado", ["enviado", "validado"])
       .range(offset, offset + PAGE - 1);
     if (campusId) q = q.eq("campus_id", campusId);
@@ -82,6 +83,47 @@ export interface TipoDistribucion {
 }
 
 // ══════════════════════════════════════════════
+// Heatmap día de la semana
+// ══════════════════════════════════════════════
+export interface DiaHeatmap {
+  dia: number; // 0=dom, 1=lun, ... 6=sab
+  label: string;
+  encuentros: number;
+  asistentes: number;
+  paj: number;
+}
+
+// ══════════════════════════════════════════════
+// Top predicadores
+// ══════════════════════════════════════════════
+export interface PredicadorStats {
+  nombre: string;
+  encuentros: number;
+  asistentes: number;
+  paj: number;
+  promedio: number;
+  tasa_conversion: number; // paj/asistentes * 100
+}
+
+// ══════════════════════════════════════════════
+// Records
+// ══════════════════════════════════════════════
+export interface Records {
+  max_asistentes: { valor: number; fecha: string; campus: string };
+  max_paj: { valor: number; fecha: string; campus: string };
+  max_online: { valor: number; fecha: string; campus: string };
+}
+
+// ══════════════════════════════════════════════
+// Campus por año (crecimiento individual)
+// ══════════════════════════════════════════════
+export interface CampusAnioStats {
+  campus_id: string;
+  nombre: string;
+  por_anio: { anio: number; encuentros: number; asistentes: number; paj: number }[];
+}
+
+// ══════════════════════════════════════════════
 // Datos completos del ejecutivo
 // ══════════════════════════════════════════════
 export interface EjecutivoData {
@@ -93,12 +135,17 @@ export interface EjecutivoData {
     voluntarios: number;
     online: number;
     promedio_por_encuentro: number;
+    tasa_conversion: number; // PAJ / asistentes * 1000 (por mil)
     primer_registro: string;
   };
   por_anio: AnioStats[];
   por_mes: MesStats[]; // últimos 18 meses
   campus_ranking: CampusRanking[];
   por_tipo: TipoDistribucion[];
+  por_dia: DiaHeatmap[];
+  top_predicadores: PredicadorStats[];
+  records: Records;
+  campus_por_anio: CampusAnioStats[];
   crecimiento_yoy: {
     encuentros_pct: number;
     asistentes_pct: number;
@@ -107,6 +154,7 @@ export interface EjecutivoData {
 }
 
 const MESES_CORTO = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const DIAS_SEMANA = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
 function sumarVoluntarios(v: Record<string, number> | null): number {
   if (!v) return 0;
@@ -131,6 +179,14 @@ export async function getEjecutivoData(campusId?: string): Promise<EjecutivoData
   const porMes: Record<string, MesStats> = {};
   const porCampus: Record<string, { encuentros: number; asistentes: number; paj: number }> = {};
   const porTipo: Record<string, { encuentros: number; asistentes: number; paj: number }> = {};
+  const porDia: Record<number, { encuentros: number; asistentes: number; paj: number }> = {};
+  const porPredicador: Record<string, { encuentros: number; asistentes: number; paj: number }> = {};
+  const campusAnio: Record<string, Record<number, { encuentros: number; asistentes: number; paj: number }>> = {};
+
+  // Records
+  let maxAsist = { valor: 0, fecha: "", campus: "" };
+  let maxPajRec = { valor: 0, fecha: "", campus: "" };
+  let maxOnline = { valor: 0, fecha: "", campus: "" };
 
   for (const r of rows) {
     const paj = (r.acepto_jesus_presencial ?? 0) + (r.online?.acepto_jesus ?? 0);
@@ -144,6 +200,12 @@ export async function getEjecutivoData(campusId?: string): Promise<EjecutivoData
     totalVoluntarios += vol;
     totalOnline += onl;
     if (r.fecha < primerFecha) primerFecha = r.fecha;
+
+    // Records
+    const cNombre = campusMap[r.campus_id]?.nombre ?? "?";
+    if (r.total_general > maxAsist.valor) maxAsist = { valor: r.total_general, fecha: r.fecha, campus: cNombre };
+    if (paj > maxPajRec.valor) maxPajRec = { valor: paj, fecha: r.fecha, campus: cNombre };
+    if (onl > maxOnline.valor) maxOnline = { valor: onl, fecha: r.fecha, campus: cNombre };
 
     // Por año
     const anio = parseInt(r.fecha.substring(0, 4));
@@ -177,6 +239,33 @@ export async function getEjecutivoData(campusId?: string): Promise<EjecutivoData
     porTipo[r.tipo].encuentros++;
     porTipo[r.tipo].asistentes += r.total_general;
     porTipo[r.tipo].paj += paj;
+
+    // Por día de la semana
+    const diaNum = new Date(r.fecha + "T12:00:00").getDay();
+    if (!porDia[diaNum]) porDia[diaNum] = { encuentros: 0, asistentes: 0, paj: 0 };
+    porDia[diaNum].encuentros++;
+    porDia[diaNum].asistentes += r.total_general;
+    porDia[diaNum].paj += paj;
+
+    // Por predicador
+    if (r.predicador && r.predicador.trim()) {
+      // Multi-predicador: "Juan, Pedro" → ambos cuentan
+      const preds = r.predicador.split(",").map(p => p.trim()).filter(Boolean);
+      for (const pred of preds) {
+        const key = pred.toLowerCase();
+        if (!porPredicador[key]) porPredicador[key] = { encuentros: 0, asistentes: 0, paj: 0 };
+        porPredicador[key].encuentros++;
+        porPredicador[key].asistentes += r.total_general;
+        porPredicador[key].paj += paj;
+      }
+    }
+
+    // Campus por año
+    if (!campusAnio[r.campus_id]) campusAnio[r.campus_id] = {};
+    if (!campusAnio[r.campus_id][anio]) campusAnio[r.campus_id][anio] = { encuentros: 0, asistentes: 0, paj: 0 };
+    campusAnio[r.campus_id][anio].encuentros++;
+    campusAnio[r.campus_id][anio].asistentes += r.total_general;
+    campusAnio[r.campus_id][anio].paj += paj;
   }
 
   // Ranking campus
@@ -198,6 +287,42 @@ export async function getEjecutivoData(campusId?: string): Promise<EjecutivoData
       porcentaje: rows.length > 0 ? Math.round((stats.encuentros / rows.length) * 100) : 0,
     }))
     .sort((a, b) => b.encuentros - a.encuentros);
+
+  // Heatmap por día
+  const diaArr: DiaHeatmap[] = [0,1,2,3,4,5,6].map(d => ({
+    dia: d,
+    label: DIAS_SEMANA[d],
+    encuentros: porDia[d]?.encuentros ?? 0,
+    asistentes: porDia[d]?.asistentes ?? 0,
+    paj: porDia[d]?.paj ?? 0,
+  }));
+
+  // Top predicadores (mínimo 3 encuentros, top 15)
+  const predArr: PredicadorStats[] = Object.entries(porPredicador)
+    .filter(([_, s]) => s.encuentros >= 3)
+    .map(([nombre, stats]) => ({
+      nombre: nombre.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
+      ...stats,
+      promedio: stats.encuentros > 0 ? Math.round(stats.asistentes / stats.encuentros) : 0,
+      tasa_conversion: stats.asistentes > 0 ? Math.round((stats.paj / stats.asistentes) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.encuentros - a.encuentros)
+    .slice(0, 15);
+
+  // Campus por año
+  const campusAnioArr: CampusAnioStats[] = Object.entries(campusAnio)
+    .map(([cid, anios]) => ({
+      campus_id: cid,
+      nombre: campusMap[cid]?.nombre ?? "?",
+      por_anio: Object.entries(anios)
+        .map(([a, s]) => ({ anio: parseInt(a), ...s }))
+        .sort((a, b) => a.anio - b.anio),
+    }))
+    .sort((a, b) => {
+      const totalA = a.por_anio.reduce((s, y) => s + y.asistentes, 0);
+      const totalB = b.por_anio.reduce((s, y) => s + y.asistentes, 0);
+      return totalB - totalA;
+    });
 
   // Crecimiento YoY
   const anioActual = new Date().getFullYear();
@@ -224,12 +349,17 @@ export async function getEjecutivoData(campusId?: string): Promise<EjecutivoData
       voluntarios: totalVoluntarios,
       online: totalOnline,
       promedio_por_encuentro: rows.length > 0 ? Math.round(totalAsistentes / rows.length) : 0,
+      tasa_conversion: totalAsistentes > 0 ? Math.round((totalPaj / totalAsistentes) * 10000) / 100 : 0,
       primer_registro: primerFecha,
     },
     por_anio: Object.values(porAnio).sort((a, b) => a.anio - b.anio),
     por_mes: ultimos18,
     campus_ranking: campusRanking,
     por_tipo: tipoArr,
+    por_dia: diaArr,
+    top_predicadores: predArr,
+    records: { max_asistentes: maxAsist, max_paj: maxPajRec, max_online: maxOnline },
+    campus_por_anio: campusAnioArr,
     crecimiento_yoy: crecimiento,
   };
 }
