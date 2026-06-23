@@ -1,12 +1,29 @@
 "use client";
 import { useTransition } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { PlusCircle, Loader2 } from "lucide-react";
+import { generarInformeSemanal } from "@/lib/actions/informes";
+
 export default function GenerarInformeBtn() {
-  const [p, start] = useTransition();
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  function handleClick() {
+    if (!confirm("¿Generar/actualizar el informe de la semana actual?")) return;
+    start(async () => {
+      try {
+        await generarInformeSemanal();
+        router.refresh();
+      } catch (e: any) {
+        alert("Error: " + (e.message || "No se pudo generar el informe"));
+      }
+    });
+  }
+
   return (
-    <button className="btn-primary" disabled={p} onClick={()=>start(async()=>{await new Promise(r=>setTimeout(r,800));toast.success("Informe generado correctamente");})}>
-      {p?<Loader2 size={13} className="animate-spin"/>:<PlusCircle size={13}/>}Generar informe semanal
+    <button className="btn-primary" disabled={pending} onClick={handleClick}>
+      {pending ? <Loader2 size={13} className="animate-spin" /> : <PlusCircle size={13} />}
+      {pending ? "Generando..." : "Generar informe semanal"}
     </button>
   );
 }

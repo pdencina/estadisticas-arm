@@ -33,7 +33,7 @@ export default async function InformesPage() {
                   <p className="text-sm font-bold text-gray-800">Semana {inf.semana_numero} · {format(parseISO(inf.semana_inicio), "MMMM yyyy", { locale: es })}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{ini} – {fin}</p>
                 </div>
-                <button className="btn-secondary btn-sm"><Download size={12}/>Descargar PDF</button>
+                <a href={`/api/informes/${inf.id}/download`} download className="btn-secondary btn-sm"><Download size={12}/>Descargar</a>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
                 {[
