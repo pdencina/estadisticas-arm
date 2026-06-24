@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getCampusConEstadisticas } from "@/lib/queries/campus";
+import { getCampusConEstadisticas, getAllCampus } from "@/lib/queries/campus";
+import { getEstadisticasGlobales } from "@/lib/queries/encuentros";
 import { getCurrentUser } from "@/lib/queries/users";
 import { fmt, fmtDelta, deltaColor, PAIS_COLOR } from "@/lib/utils";
 import { Building2, ArrowRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -20,8 +21,14 @@ function StatBox({ label, value, delta, accent=false }: { label:string; value:nu
 }
 
 export default async function CampusPage() {
-  const [user, lista] = await Promise.all([getCurrentUser(), getCampusConEstadisticas()]);
+  const [user, lista, allCampusList, globales] = await Promise.all([
+    getCurrentUser(),
+    getCampusConEstadisticas(),
+    getAllCampus(),
+    getEstadisticasGlobales(),
+  ]);
   const vis = user?.rol==="admin_global" ? lista : lista.filter(c=>c.id===user?.campus_id);
+  const inactivos = allCampusList.filter(c => !c.activo);
 
   return (
     <div className="page space-y-6">
@@ -70,6 +77,47 @@ export default async function CampusPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Campus históricos (inactivos) */}
+      {user?.rol==="admin_global" && inactivos.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Campus históricos</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {inactivos.map(c => {
+              const stats = globales.por_campus[c.id];
+              if (!stats || stats.encuentros === 0) return null;
+              return (
+                <Link key={c.id} href={`/campus/${c.id}`} className="card p-5 hover:shadow-md transition-all hover:border-gray-300 block group opacity-80">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-gray-100">
+                      <Building2 size={16} className="text-gray-400"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-600 truncate group-hover:text-gray-800 transition-colors">{c.nombre}</p>
+                      <p className="text-xs text-gray-400">{c.ciudad} · {c.pais}</p>
+                    </div>
+                    <span className="text-[9px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-semibold">Histórico</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-gray-50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Encuentros</p>
+                      <p className="text-lg font-black tabular-nums">{fmt(stats.encuentros)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Asistentes</p>
+                      <p className="text-lg font-black tabular-nums">{fmt(stats.asistentes)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">PAJ</p>
+                      <p className="text-lg font-black tabular-nums" style={{color:"var(--teal)"}}>{fmt(stats.paj)}</p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}
