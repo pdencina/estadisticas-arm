@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getDashboardKPIs, getEncuentrosSemanaActual, getEncuentrosPendientes, getContadorAlmas, getEstadisticasGlobales } from "@/lib/queries/encuentros";
-import { getCampusConEstadisticas } from "@/lib/queries/campus";
+import { getCampusConEstadisticas, getAllCampus } from "@/lib/queries/campus";
 import { getCurrentUser } from "@/lib/queries/users";
 import { fmt, fmtDelta, deltaColor, TIPO_LABELS, fmtFecha, PAIS_COLOR, semanaActual } from "@/lib/utils";
 import { Building2, PlusCircle, ArrowRight, AlertCircle } from "lucide-react";
@@ -15,13 +15,14 @@ export default async function DashboardPage() {
   if (user?.rol === "voluntario") redirect("/nuevo-reporte");
   const cId = user?.rol === "admin_global" ? undefined : user?.campus_id ?? undefined;
 
-  const [kpis, encuentros, pendientes, campusList, contador, globales] = await Promise.all([
+  const [kpis, encuentros, pendientes, campusList, contador, globales, allCampus] = await Promise.all([
     getDashboardKPIs(cId),
     getEncuentrosSemanaActual(cId),
     getEncuentrosPendientes(cId),
     getCampusConEstadisticas(),
     getContadorAlmas(),
     getEstadisticasGlobales(cId),
+    getAllCampus(),
   ]);
 
   const { semana_actual: sa, diferencias: d } = kpis;
@@ -177,12 +178,12 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {[...campusList].sort((a, b) => (globales.por_campus[b.id]?.asistentes ?? 0) - (globales.por_campus[a.id]?.asistentes ?? 0)).map(c => {
+                {[...allCampus].sort((a, b) => (globales.por_campus[b.id]?.asistentes ?? 0) - (globales.por_campus[a.id]?.asistentes ?? 0)).map(c => {
                   const stats = globales.por_campus[c.id];
                   if (!stats) return null;
                   return (
                     <tr key={c.id}>
-                      <td><span className="font-semibold">{c.nombre}</span><span className="text-xs text-gray-400 ml-1">{c.pais}</span></td>
+                      <td><span className="font-semibold">{c.nombre}</span><span className="text-xs text-gray-400 ml-1">{c.pais}</span>{!c.activo && <span className="text-[9px] text-gray-300 ml-1">(histórico)</span>}</td>
                       <td className="text-right font-bold tabular-nums">{fmt(stats.encuentros)}</td>
                       <td className="text-right tabular-nums text-gray-500">{fmt(stats.asistentes)}</td>
                       <td className="text-right font-black tabular-nums" style={{ color: "var(--teal)" }}>{fmt(stats.paj)}</td>

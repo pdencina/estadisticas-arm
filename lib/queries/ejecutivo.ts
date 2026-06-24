@@ -166,7 +166,7 @@ export async function getEjecutivoData(campusId?: string): Promise<EjecutivoData
   const rows = await fetchAllEncuentros(campusId);
 
   // Campus lookup
-  const { data: campusRows } = await supabase.from("campus").select("id,nombre,pais").eq("activo", true);
+  const { data: campusRows } = await supabase.from("campus").select("id,nombre,pais");
   const campusMap: Record<string, { nombre: string; pais: string }> = {};
   for (const c of campusRows ?? []) campusMap[c.id] = { nombre: c.nombre, pais: c.pais };
 

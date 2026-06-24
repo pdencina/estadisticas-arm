@@ -42,8 +42,8 @@ const CAMPUS_MAP: Record<string, string> = {
   "Katy Texas":     "Katy Texas",
   "Katy":           "Katy Texas",
   "La Plata":       "La Plata",
-  "Miami":          "",
-  "Oriente":        "",
+  "Miami":          "Miami",
+  "Oriente":        "Oriente",
   "Otro":           "",
   "Virtual":        "",
 };
