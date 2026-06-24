@@ -177,7 +177,7 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {campusList.map(c => {
+                {[...campusList].sort((a, b) => (globales.por_campus[b.id]?.asistentes ?? 0) - (globales.por_campus[a.id]?.asistentes ?? 0)).map(c => {
                   const stats = globales.por_campus[c.id];
                   if (!stats) return null;
                   return (
