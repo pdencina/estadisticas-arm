@@ -12,8 +12,34 @@ function AutoInput({ label, value, onChange, suggestions, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; suggestions: string[]; placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState("");
-  const filtered = suggestions.filter(s => s.toLowerCase().includes((filter || value).toLowerCase())).slice(0, 8);
+  const [inputVal, setInputVal] = useState(value);
+
+  // Sync external value
+  useEffect(() => { setInputVal(value); }, [value]);
+
+  // Get the last segment being typed (after last comma, & or /)
+  const lastSegment = inputVal.split(/[,&\/]/).pop()?.trim().toLowerCase() ?? "";
+
+  // Filter suggestions: exclude already selected ones, match by last segment
+  const alreadySelected = inputVal.split(/[,&\/]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  const filtered = suggestions
+    .filter(s => !alreadySelected.includes(s.toLowerCase()))
+    .filter(s => lastSegment === "" || s.toLowerCase().includes(lastSegment))
+    .slice(0, 10);
+
+  function handleSelect(s: string) {
+    // Replace the last segment with the selection
+    const parts = inputVal.split(/([,&\/])/);
+    // Remove last part and its separator
+    if (parts.length > 2) {
+      parts.pop(); // last text
+      const newVal = parts.join("") + " " + s;
+      onChange(newVal.trim());
+    } else {
+      onChange(s);
+    }
+    setOpen(false);
+  }
 
   return (
     <div className="relative">
@@ -22,16 +48,17 @@ function AutoInput({ label, value, onChange, suggestions, placeholder }: {
         type="text"
         className="input"
         placeholder={placeholder}
-        value={value}
-        onChange={e => { onChange(e.target.value); setFilter(e.target.value); setOpen(true); }}
+        value={inputVal}
+        onChange={e => { setInputVal(e.target.value); onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        onBlur={() => setTimeout(() => setOpen(false), 250)}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-44 overflow-y-auto">
           {filtered.map(s => (
-            <button key={s} type="button" className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 truncate"
-              onMouseDown={() => { onChange(value ? `${value}, ${s}` : s); setOpen(false); }}>
+            <button key={s} type="button"
+              className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 hover:text-blue-700 truncate transition-colors"
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(s); }}>
               {s}
             </button>
           ))}
@@ -113,7 +140,16 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
   // Sugerencias de predicadores, líderes y admins
   const [sugerencias, setSugerencias] = useState<{ predicadores: string[]; lideres: string[]; admins: string[] }>({ predicadores: [], lideres: [], admins: [] });
   useEffect(() => {
-    fetch("/api/sugerencias").then(r => r.json()).then(setSugerencias).catch(() => {});
+    fetch("/api/sugerencias").then(r => r.json()).then(data => {
+      // Merge with known names if API returns empty
+      const defaultLideres = ["Juan Meneses", "Pamela Fabio", "Jorge Semerino", "Susy Semerino"];
+      const defaultAdmins = ["Felipe Burgos", "Alison Carvajal", "Asdrubal Betancourt", "Evny Oropeza", "Pablo Encina"];
+      setSugerencias({
+        predicadores: data.predicadores?.length > 0 ? data.predicadores : [],
+        lideres: data.lideres?.length > 0 ? data.lideres : defaultLideres,
+        admins: data.admins?.length > 0 ? data.admins : defaultAdmins,
+      });
+    }).catch(() => {});
   }, []);
 
   const esOracion = tipo === "encuentro_oracion";
@@ -214,10 +250,12 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
           </div>
           <div><label className="label">Modalidad</label><select className="input" value={modal} onChange={e=>setM(e.target.value)}><option value="presencial">Presencial</option><option value="online">Online</option><option value="hibrido">Híbrido</option></select></div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <AutoInput label="Predicador/a" value={pred} onChange={setPred} suggestions={sugerencias.predicadores} placeholder="Ej: Pastora Naty Segura" />
-          <div><label className="label">Nombre del mensaje</label><input type="text" className="input" placeholder="Ej: Tumba vacía, corazón encendido" value={msj} onChange={e=>setMsj(e.target.value)}/></div>
-        </div>
+        {!esOracion && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <AutoInput label="Predicador/a" value={pred} onChange={setPred} suggestions={sugerencias.predicadores} placeholder="Ej: Pastora Naty Segura" />
+            <div><label className="label">Nombre del mensaje</label><input type="text" className="input" placeholder="Ej: Tumba vacía, corazón encendido" value={msj} onChange={e=>setMsj(e.target.value)}/></div>
+          </div>
+        )}
       </Sec>
 
       <Sec title="Totales generales">
