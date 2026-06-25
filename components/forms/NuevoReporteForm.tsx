@@ -1,11 +1,45 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crearEncuentro } from "@/lib/actions/encuentros";
 import { HORARIOS, TIPOS_ENCUENTRO } from "@/lib/utils";
 import type { Campus, AsistenciaDetalle, VoluntariosDetalle, Encuentro } from "@/types";
 import { Loader2, Send, Copy, X, Eye } from "lucide-react";
+
+// ═══ AutoInput con sugerencias ═══
+function AutoInput({ label, value, onChange, suggestions, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; suggestions: string[]; placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("");
+  const filtered = suggestions.filter(s => s.toLowerCase().includes((filter || value).toLowerCase())).slice(0, 8);
+
+  return (
+    <div className="relative">
+      <label className="label">{label}</label>
+      <input
+        type="text"
+        className="input"
+        placeholder={placeholder}
+        value={value}
+        onChange={e => { onChange(e.target.value); setFilter(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          {filtered.map(s => (
+            <button key={s} type="button" className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 truncate"
+              onMouseDown={() => { onChange(value ? `${value}, ${s}` : s); setOpen(false); }}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Ctr({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -75,6 +109,14 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
   const [admC, setAdmC] = useState(encuentro?.admins_campus ?? "");
   const [saved, setSaved] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Sugerencias de predicadores, líderes y admins
+  const [sugerencias, setSugerencias] = useState<{ predicadores: string[]; lideres: string[]; admins: string[] }>({ predicadores: [], lideres: [], admins: [] });
+  useEffect(() => {
+    fetch("/api/sugerencias").then(r => r.json()).then(setSugerencias).catch(() => {});
+  }, []);
+
+  const esOracion = tipo === "encuentro_oracion";
 
   const uA = (k: keyof AsistenciaDetalle,   v: number) => setAsis(p=>({...p,[k]:v}));
   const uV = (k: keyof VoluntariosDetalle, v: number) => setVols(p=>({...p,[k]:v}));
@@ -173,7 +215,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
           <div><label className="label">Modalidad</label><select className="input" value={modal} onChange={e=>setM(e.target.value)}><option value="presencial">Presencial</option><option value="online">Online</option><option value="hibrido">Híbrido</option></select></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div><label className="label">Predicador/a</label><input type="text" className="input" placeholder="Ej: Pastora Naty Segura" value={pred} onChange={e=>setPred(e.target.value)}/></div>
+          <AutoInput label="Predicador/a" value={pred} onChange={setPred} suggestions={sugerencias.predicadores} placeholder="Ej: Pastora Naty Segura" />
           <div><label className="label">Nombre del mensaje</label><input type="text" className="input" placeholder="Ej: Tumba vacía, corazón encendido" value={msj} onChange={e=>setMsj(e.target.value)}/></div>
         </div>
       </Sec>
@@ -185,33 +227,60 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
         </div>
       </Sec>
 
-      <Sec title="Desglose de asistencia" badge={`Total: ${tA}`}>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {([["auditorio","Auditorio"],["kids","Kids"],["tweens","Tweens"],["sala_bebe","Sala bebé"],["sala_sensorial","Sala sensorial"],["cambio","Cambio"]] as [keyof AsistenciaDetalle,string][]).map(([k,l])=>(
-            <Ctr key={k} label={l} value={asis[k]} onChange={v=>uA(k,v)}/>
-          ))}
-        </div>
-      </Sec>
+      {/* Formulario simplificado para Encuentro Oración */}
+      {esOracion ? (
+        <>
+          <Sec title="Asistencia" badge={`Total: ${asis.auditorio}`}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Ctr label="Auditorio" value={asis.auditorio} onChange={v=>uA("auditorio",v)}/>
+            </div>
+          </Sec>
 
-      <Sec title="Voluntarios" badge={`Total: ${tV}`}>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {([["servicio","Servicio"],["tecnica","Técnica"],["kids","Kids"],["tweens","Tweens"],["worship","Worship"],["cocina","Cocina"],["rrss","R.R.S.S"],["seguridad","Seguridad"],["sala_bebes","Sala bebés"],["conexion","Conexión"],["oracion","Oración"],["merch","Merch"],["amor_por_la_casa","Amor casa"],["sala_sensorial","Sala sensorial"],["punto_siembra","Pto. siembra"],["cambios","Cambios"]] as [keyof VoluntariosDetalle,string][]).map(([k,l])=>(
-            <Ctr key={k} label={l} value={vols[k]} onChange={v=>uV(k,v)}/>
-          ))}
-        </div>
-      </Sec>
+          <Sec title="Voluntarios" badge={`Total: ${tV}`}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {([["oracion","Oradores"],["servicio","Servicio"],["tecnica","Técnica"],["worship","Worship"],["cocina","Cocina"],["rrss","Redes sociales"],["seguridad","Seguridad"]] as [keyof VoluntariosDetalle,string][]).map(([k,l])=>(
+                <Ctr key={k} label={l} value={vols[k]} onChange={v=>uV(k,v)}/>
+              ))}
+            </div>
+          </Sec>
 
-      <Sec title="Online">
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className="label">Aceptaron a Jesús (online)</label><input type="number" min={0} className="input" value={oPaj||""} onChange={e=>setOPaj(Number(e.target.value))}/></div>
-          <div><label className="label">Espectadores simultáneos</label><input type="number" min={0} className="input" value={oEsp||""} onChange={e=>setOEsp(Number(e.target.value))}/></div>
-        </div>
-      </Sec>
+          <Sec title="Online">
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="label">Espectadores simultáneos</label><input type="number" min={0} className="input" value={oEsp||""} onChange={e=>setOEsp(Number(e.target.value))}/></div>
+            </div>
+          </Sec>
+        </>
+      ) : (
+        <>
+          <Sec title="Desglose de asistencia" badge={`Total: ${tA}`}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {([["auditorio","Auditorio"],["kids","Kids"],["tweens","Tweens"],["sala_bebe","Sala bebé"],["sala_sensorial","Sala sensorial"],["cambio","Cambio"]] as [keyof AsistenciaDetalle,string][]).map(([k,l])=>(
+                <Ctr key={k} label={l} value={asis[k]} onChange={v=>uA(k,v)}/>
+              ))}
+            </div>
+          </Sec>
+
+          <Sec title="Voluntarios" badge={`Total: ${tV}`}>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {([["servicio","Servicio"],["tecnica","Técnica"],["kids","Kids"],["tweens","Tweens"],["worship","Worship"],["cocina","Cocina"],["rrss","R.R.S.S"],["seguridad","Seguridad"],["sala_bebes","Sala bebés"],["conexion","Conexión"],["oracion","Oración"],["merch","Merch"],["amor_por_la_casa","Amor casa"],["sala_sensorial","Sala sensorial"],["punto_siembra","Pto. siembra"],["cambios","Cambios"]] as [keyof VoluntariosDetalle,string][]).map(([k,l])=>(
+                <Ctr key={k} label={l} value={vols[k]} onChange={v=>uV(k,v)}/>
+              ))}
+            </div>
+          </Sec>
+
+          <Sec title="Online">
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="label">Aceptaron a Jesús (online)</label><input type="number" min={0} className="input" value={oPaj||""} onChange={e=>setOPaj(Number(e.target.value))}/></div>
+              <div><label className="label">Espectadores simultáneos</label><input type="number" min={0} className="input" value={oEsp||""} onChange={e=>setOEsp(Number(e.target.value))}/></div>
+            </div>
+          </Sec>
+        </>
+      )}
 
       <Sec title="Liderazgo">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><label className="label">Líderes de voluntarios</label><input type="text" className="input" placeholder="Ej: Jorge y Susy" value={lidV} onChange={e=>setLidV(e.target.value)}/></div>
-          <div><label className="label">Administradores de campus</label><input type="text" className="input" placeholder="Ej: Mario y Mirta" value={admC} onChange={e=>setAdmC(e.target.value)}/></div>
+          <AutoInput label="Líderes de voluntarios" value={lidV} onChange={setLidV} suggestions={sugerencias.lideres} placeholder="Ej: Juan Meneses & Pamela Fabio" />
+          <AutoInput label="Administradores de campus" value={admC} onChange={setAdmC} suggestions={sugerencias.admins} placeholder="Ej: Felipe Burgos & Alison Carvajal" />
         </div>
       </Sec>
 
