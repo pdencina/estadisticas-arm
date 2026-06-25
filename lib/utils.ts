@@ -30,6 +30,7 @@ export function deltaColor(n: number) {
 export const TIPO_LABELS: Record<string, string> = {
   domingo:            "Domingo",
   miercoles:          "Miércoles Global",
+  encuentro_oracion:  "Encuentro Oración",
   jueves:             "Jueves",
   sabado:             "Sábado",
   prayer_room:        "Prayer Room",
@@ -61,6 +62,7 @@ export const ESTADO_LABELS: Record<string, string> = {
 export const TIPOS_ENCUENTRO = [
   { value: "domingo",            label: "Domingo"            },
   { value: "miercoles",          label: "Miércoles Global"   },
+  { value: "encuentro_oracion",  label: "Encuentro Oración"  },
   { value: "jueves",             label: "Jueves"             },
   { value: "sabado",             label: "Sábado"             },
   { value: "prayer_room",        label: "Prayer Room"        },
