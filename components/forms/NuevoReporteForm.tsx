@@ -54,7 +54,7 @@ function AutoInput({ label, value, onChange, suggestions, placeholder }: {
         onBlur={() => setTimeout(() => setOpen(false), 250)}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-44 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-44 overflow-y-auto">
           {filtered.map(s => (
             <button key={s} type="button"
               className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 hover:text-blue-700 truncate transition-colors"
@@ -85,9 +85,9 @@ function Ctr({ label, value, onChange }: { label: string; value: number; onChang
   );
 }
 
-function Sec({ title, badge, children }: { title: string; badge?: string; children: React.ReactNode }) {
+function Sec({ title, badge, children, overflow }: { title: string; badge?: string; children: React.ReactNode; overflow?: boolean }) {
   return (
-    <div className="card overflow-hidden">
+    <div className={`card ${overflow ? "" : "overflow-hidden"}`}>
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
         <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
         {badge && <span className="badge badge-purple text-[10px]">{badge}</span>}
@@ -141,13 +141,35 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
   const [sugerencias, setSugerencias] = useState<{ predicadores: string[]; lideres: string[]; admins: string[] }>({ predicadores: [], lideres: [], admins: [] });
   useEffect(() => {
     fetch("/api/sugerencias").then(r => r.json()).then(data => {
-      // Merge with known names if API returns empty
-      const defaultLideres = ["Juan Meneses", "Pamela Fabio", "Jorge Semerino", "Susy Semerino"];
-      const defaultAdmins = ["Felipe Burgos", "Alison Carvajal", "Asdrubal Betancourt", "Evny Oropeza", "Pablo Encina"];
+      // Known names from reports — will be enriched by API data
+      const defaultLideres = [
+        "José Castro", "Lina Herrera", "Juan Meneses", "Pamela Fabio",
+        "Víctor", "Michelle", "Mario", "Nicol",
+      ];
+      const defaultAdmins = [
+        "Felipe Burgos", "Alison Carvajal", "Asdrubal Betancourt", "Evny Oropeza",
+        "Ghislaine Rivera", "César Letelier", "Paula Muñoz", "Miguel Castro",
+        "Kathy", "Rodrigo Pozo", "Jose Miguel", "Ana Gabriela", "Pablo Encina",
+      ];
+      const defaultPredicadores = [
+        "Pastor Principal Patricio Burgos", "Ps. Miguel Gonzalez", "Ps Mariana Varela",
+        "Pastor Patricio Andrés Burgos",
+      ];
+
+      // Merge API data with defaults (deduplicate)
+      const mergeUnique = (apiArr: string[], defaults: string[]) => {
+        const set = new Set(apiArr.map(s => s.toLowerCase()));
+        const merged = [...apiArr];
+        for (const d of defaults) {
+          if (!set.has(d.toLowerCase())) { merged.push(d); set.add(d.toLowerCase()); }
+        }
+        return merged.sort();
+      };
+
       setSugerencias({
-        predicadores: data.predicadores?.length > 0 ? data.predicadores : [],
-        lideres: data.lideres?.length > 0 ? data.lideres : defaultLideres,
-        admins: data.admins?.length > 0 ? data.admins : defaultAdmins,
+        predicadores: mergeUnique(data.predicadores ?? [], defaultPredicadores),
+        lideres: mergeUnique(data.lideres ?? [], defaultLideres),
+        admins: mergeUnique(data.admins ?? [], defaultAdmins),
       });
     }).catch(() => {});
   }, []);
@@ -233,7 +255,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
         </div>
       )}
 
-      <Sec title="Información del encuentro">
+      <Sec title="Información del encuentro" overflow>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div><label className="label">Campus</label><select className="input" value={cId} onChange={e=>setCId(e.target.value)}>{campusList.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
           <div><label className="label">Fecha</label><input type="date" className="input" value={fecha} onChange={e=>setF(e.target.value)}/></div>
@@ -315,7 +337,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
         </>
       )}
 
-      <Sec title="Liderazgo">
+      <Sec title="Liderazgo" overflow>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <AutoInput label="Líderes de voluntarios" value={lidV} onChange={setLidV} suggestions={sugerencias.lideres} placeholder="Ej: Juan Meneses & Pamela Fabio" />
           <AutoInput label="Administradores de campus" value={admC} onChange={setAdmC} suggestions={sugerencias.admins} placeholder="Ej: Felipe Burgos & Alison Carvajal" />
