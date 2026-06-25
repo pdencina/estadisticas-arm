@@ -8,8 +8,8 @@ import type { Campus, AsistenciaDetalle, VoluntariosDetalle, Encuentro } from "@
 import { Loader2, Send, Copy, X, Eye } from "lucide-react";
 
 // ═══ AutoInput con sugerencias ═══
-function AutoInput({ label, value, onChange, suggestions, placeholder }: {
-  label: string; value: string; onChange: (v: string) => void; suggestions: string[]; placeholder?: string;
+function AutoInput({ label, value, onChange, suggestions, placeholder, dropUp }: {
+  label: string; value: string; onChange: (v: string) => void; suggestions: string[]; placeholder?: string; dropUp?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [inputVal, setInputVal] = useState(value);
@@ -54,7 +54,7 @@ function AutoInput({ label, value, onChange, suggestions, placeholder }: {
         onBlur={() => setTimeout(() => setOpen(false), 250)}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-44 overflow-y-auto">
+        <div className={`absolute z-50 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl max-h-44 overflow-y-auto ${dropUp ? "bottom-full mb-1" : "top-full mt-1"}`}>
           {filtered.map(s => (
             <button key={s} type="button"
               className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 hover:text-blue-700 truncate transition-colors"
@@ -141,19 +141,49 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
   const [sugerencias, setSugerencias] = useState<{ predicadores: string[]; lideres: string[]; admins: string[] }>({ predicadores: [], lideres: [], admins: [] });
   useEffect(() => {
     fetch("/api/sugerencias").then(r => r.json()).then(data => {
-      // Known names from reports — will be enriched by API data
+      // Known names from reports
       const defaultLideres = [
-        "José Castro", "Lina Herrera", "Juan Meneses", "Pamela Fabio",
-        "Víctor", "Michelle", "Mario", "Nicol",
+        "Jhoelix Colmenarez", "Sergio Labra",
+        "César Torres", "Angerly Colmenares",
+        "Pamela Fabio", "Juan Meneses",
+        "Iván Cifuentes", "Naty Medina",
+        "José Castro", "Lina Herrera",
+        "Carla Díaz", "Jesús Chirinos",
+        "Eduardo Pérez", "Jenny Quiñones",
+        "Nicole Bravo",
+        "Víctor Cárdenas", "Michelle Amigo",
+        "Jorge Leñam", "Susi Rojas",
+        "Gastón", "Natalia",
+        "José", "Nataly",
+        "Carlos", "Geoany",
+        "Walter Suárez", "Nayibe Rosales de Suárez",
+        "María Fernanda Casadiego",
+        "Mariale Tenorio", "Karina González",
+        "Asmeida Morales", "Carla Pereira",
+        "Luis Ramírez",
+        "Marco Díaz", "Evelyn Grandón",
       ];
       const defaultAdmins = [
-        "Felipe Burgos", "Alison Carvajal", "Asdrubal Betancourt", "Evny Oropeza",
-        "Ghislaine Rivera", "César Letelier", "Paula Muñoz", "Miguel Castro",
-        "Kathy", "Rodrigo Pozo", "Jose Miguel", "Ana Gabriela", "Pablo Encina",
+        "Felipe Burgos", "Alison Carvajal",
+        "Darwin Vargas", "Jenny Larreal",
+        "Evny Oropeza", "Asdrúbal Betancourt",
+        "Elías Quirós", "Jenny Curigual",
+        "César Letelier", "Ghislaine Rivera",
+        "Miguel Castro", "Paula Ramírez",
+        "Santi", "Lucre",
+        "Rodrigo Pozo", "Katherine Campos",
+        "Mario Bastías", "Mirta Painen",
+        "César Palma", "Nora Ortega",
+        "Jahaziel Carrasco", "Damaris Vergara",
+        "Fermín", "Neymar",
+        "Eduardo", "Yeli",
+        "Pas. Jusneiro", "Pas. Karina Álvarez",
+        "Pas. Francisco Henríquez", "Pas. Cata Mora",
+        "Pablo Encina",
       ];
       const defaultPredicadores = [
-        "Pastor Principal Patricio Burgos", "Ps. Miguel Gonzalez", "Ps Mariana Varela",
-        "Pastor Patricio Andrés Burgos",
+        "Pastor Principal Patricio Burgos", "Ps. Miguel González",
+        "Ps. Mariana Varela", "Pastor Patricio Andrés Burgos",
       ];
 
       // Merge API data with defaults (deduplicate)
@@ -163,7 +193,7 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
         for (const d of defaults) {
           if (!set.has(d.toLowerCase())) { merged.push(d); set.add(d.toLowerCase()); }
         }
-        return merged.sort();
+        return merged.sort((a, b) => a.localeCompare(b, "es"));
       };
 
       setSugerencias({
@@ -339,8 +369,8 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
 
       <Sec title="Liderazgo" overflow>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <AutoInput label="Líderes de voluntarios" value={lidV} onChange={setLidV} suggestions={sugerencias.lideres} placeholder="Ej: Juan Meneses & Pamela Fabio" />
-          <AutoInput label="Administradores de campus" value={admC} onChange={setAdmC} suggestions={sugerencias.admins} placeholder="Ej: Felipe Burgos & Alison Carvajal" />
+          <AutoInput label="Líderes de voluntarios" value={lidV} onChange={setLidV} suggestions={sugerencias.lideres} placeholder="Ej: Juan Meneses & Pamela Fabio" dropUp />
+          <AutoInput label="Administradores de campus" value={admC} onChange={setAdmC} suggestions={sugerencias.admins} placeholder="Ej: Felipe Burgos & Alison Carvajal" dropUp />
         </div>
       </Sec>
 
