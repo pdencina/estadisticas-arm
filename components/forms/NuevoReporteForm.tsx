@@ -18,26 +18,16 @@ function AutoInput({ label, value, onChange, suggestions, placeholder, dropUp }:
   useEffect(() => { setInputVal(value); }, [value]);
 
   // Get the last segment being typed (after last comma, & or /)
-  const lastSegment = inputVal.split(/[,&\/]/).pop()?.trim().toLowerCase() ?? "";
+  const lastSegment = inputVal.trim().toLowerCase();
 
-  // Filter suggestions: exclude already selected ones, match by last segment
-  const alreadySelected = inputVal.split(/[,&\/]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  // Filter suggestions: match anywhere in the suggestion string
   const filtered = suggestions
-    .filter(s => !alreadySelected.includes(s.toLowerCase()))
     .filter(s => lastSegment === "" || s.toLowerCase().includes(lastSegment))
     .slice(0, 10);
 
   function handleSelect(s: string) {
-    // Replace the last segment with the selection
-    const parts = inputVal.split(/([,&\/])/);
-    // Remove last part and its separator
-    if (parts.length > 2) {
-      parts.pop(); // last text
-      const newVal = parts.join("") + " " + s;
-      onChange(newVal.trim());
-    } else {
-      onChange(s);
-    }
+    onChange(s);
+    setInputVal(s);
     setOpen(false);
   }
 
@@ -143,42 +133,42 @@ export default function NuevoReporteForm({ campusList, campusDefault, encuentro,
     fetch("/api/sugerencias").then(r => r.json()).then(data => {
       // Known names from reports
       const defaultLideres = [
-        "Jhoelix Colmenarez", "Sergio Labra",
-        "César Torres", "Angerly Colmenares",
-        "Pamela Fabio", "Juan Meneses",
-        "Iván Cifuentes", "Naty Medina",
-        "José Castro", "Lina Herrera",
-        "Carla Díaz", "Jesús Chirinos",
-        "Eduardo Pérez", "Jenny Quiñones",
-        "Nicole Bravo",
-        "Víctor Cárdenas", "Michelle Amigo",
-        "Jorge Leñam", "Susi Rojas",
-        "Gastón", "Natalia",
-        "José", "Nataly",
-        "Carlos", "Geoany",
-        "Walter Suárez", "Nayibe Rosales de Suárez",
+        "Jhoelix Colmenarez & Sergio Labra",
+        "César Torres & Angerly Colmenares",
+        "Pamela Fabio & Juan Meneses",
+        "Iván Cifuentes & Naty Medina",
+        "José Castro & Lina Herrera",
+        "Carla Díaz & Jesús Chirinos",
+        "Eduardo Pérez & Jenny Quiñones",
+        "Eduardo Pérez & Nicole Bravo",
+        "Víctor Cárdenas & Michelle Amigo",
+        "Jorge Leñam & Susi Rojas",
+        "Gastón & Natalia",
+        "José & Nataly",
+        "Carlos & Geoany",
+        "Walter Suárez & Nayibe Rosales de Suárez",
         "María Fernanda Casadiego",
-        "Mariale Tenorio", "Karina González",
-        "Asmeida Morales", "Carla Pereira",
+        "Mariale Tenorio & Karina González",
+        "Asmeida Morales & Carla Pereira",
         "Luis Ramírez",
-        "Marco Díaz", "Evelyn Grandón",
+        "Marco Díaz & Evelyn Grandón",
       ];
       const defaultAdmins = [
-        "Felipe Burgos", "Alison Carvajal",
-        "Darwin Vargas", "Jenny Larreal",
-        "Evny Oropeza", "Asdrúbal Betancourt",
-        "Elías Quirós", "Jenny Curigual",
-        "César Letelier", "Ghislaine Rivera",
-        "Miguel Castro", "Paula Ramírez",
-        "Santi", "Lucre",
-        "Rodrigo Pozo", "Katherine Campos",
-        "Mario Bastías", "Mirta Painen",
-        "César Palma", "Nora Ortega",
-        "Jahaziel Carrasco", "Damaris Vergara",
-        "Fermín", "Neymar",
-        "Eduardo", "Yeli",
-        "Pas. Jusneiro", "Pas. Karina Álvarez",
-        "Pas. Francisco Henríquez", "Pas. Cata Mora",
+        "Felipe Burgos & Alison Carvajal",
+        "Darwin Vargas & Jenny Larreal",
+        "Evny Oropeza & Asdrúbal Betancourt",
+        "Elías Quirós & Jenny Curigual",
+        "César Letelier & Ghislaine Rivera",
+        "Miguel Castro & Paula Ramírez",
+        "Santi & Lucre",
+        "Rodrigo Pozo & Katherine Campos",
+        "Mario Bastías & Mirta Painen",
+        "César Palma & Nora Ortega",
+        "Jahaziel Carrasco & Damaris Vergara",
+        "Fermín & Neymar",
+        "Eduardo & Yeli",
+        "Pas. Jusneiro & Pas. Karina Álvarez",
+        "Pas. Francisco Henríquez & Pas. Cata Mora",
         "Pablo Encina",
       ];
       const defaultPredicadores = [
